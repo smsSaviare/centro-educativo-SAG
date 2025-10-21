@@ -1,11 +1,8 @@
 import { Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import CourseView from './pages/CourseView';
-import CourseEditor from './pages/CourseEditor';
-import ResetPassword from './pages/ResetPassword';
+import Home from "./components/Home";
+import Login from './components/Login';
+import Register from './components/Register';
+import Dashboard from './components/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 
 function App(){
