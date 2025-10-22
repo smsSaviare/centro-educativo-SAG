@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { resetPassword } from "../api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function ResetPassword() {
-  const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") || "";
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -17,8 +18,10 @@ export default function ResetPassword() {
       if (data.message) {
         setMessage("✅ Contraseña restablecida con éxito");
         setTimeout(() => navigate("/login"), 2000);
+      } else if (data.error) {
+        setMessage(`❌ ${data.error}`);
       } else {
-        setMessage("❌ Error al restablecer la contraseña");
+        setMessage("❌ Ocurrió un error inesperado");
       }
     } catch (error) {
       console.error(error);
@@ -33,14 +36,6 @@ export default function ResetPassword() {
           Restablecer Contraseña
         </h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Token recibido por correo"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            required
-            className="border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
-          />
           <input
             type="password"
             placeholder="Nueva contraseña"

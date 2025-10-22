@@ -1,23 +1,22 @@
 import { useState } from "react";
 import { forgotPassword } from "../api";
-import { useNavigate } from "react-router-dom";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setMessage("⏳ Enviando token de recuperación...");
+    setMessage("⏳ Enviando correo de recuperación...");
 
     try {
       const data = await forgotPassword(email);
       if (data.message) {
-        setMessage("✅ Revisa tu correo para el token de recuperación");
-        setTimeout(() => navigate("/reset"), 2000); // Redirige al reset
+        setMessage("✅ Revisa tu correo: te hemos enviado un enlace para restablecer la contraseña");
+      } else if (data.error) {
+        setMessage(`❌ ${data.error}`);
       } else {
-        setMessage("❌ Ocurrió un error al enviar el token");
+        setMessage("❌ Ocurrió un error inesperado");
       }
     } catch (error) {
       console.error(error);
@@ -44,7 +43,7 @@ export default function ForgotPassword() {
             type="submit"
             className="bg-green-700 text-white py-2 rounded font-semibold hover:bg-green-600 transition"
           >
-            Enviar token
+            Enviar enlace
           </button>
         </form>
         <p className="mt-4 text-center text-red-500">{message}</p>
