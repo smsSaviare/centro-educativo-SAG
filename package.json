@@ -1,0 +1,16 @@
+{
+  "name": "centro-educativo-SAG",
+  "version": "1.0.0",
+  "private": true,
+  "homepage": "https://smsSaviare.github.io/centro-educativo-SAG/",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "vite": "^7.1.11"
+  }
+}
