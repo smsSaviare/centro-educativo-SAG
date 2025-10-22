@@ -55,8 +55,9 @@ router.post("/forgot-password", async (req, res) => {
     const token = crypto.randomBytes(20).toString("hex");
     passwordResetTokens[token] = { email, expires: Date.now() + 3600000 }; // 1 hora
 
-    // Link para GH Pages
-    const resetLink = `${process.env.FRONTEND_URL}/#/reset-password?token=${token}`;
+    // Link para GH Pages con HashRouter
+    const frontendUrl = process.env.FRONTEND_URL || "https://smssaviare.github.io";
+    const resetLink = `${frontendUrl}/#/reset-password?token=${token}`;
 
     await sendEmail(
       email,
@@ -73,7 +74,6 @@ router.post("/forgot-password", async (req, res) => {
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
-
 
 // -------------------- Reset Password --------------------
 router.post("/reset-password", async (req, res) => {
