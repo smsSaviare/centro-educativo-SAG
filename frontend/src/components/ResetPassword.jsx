@@ -28,7 +28,7 @@ export default function ResetPassword() {
 
       if (data.message) {
         setMessage("✅ Contraseña restablecida con éxito");
-        setTimeout(() => navigate("/#/login"), 2000);
+        setTimeout(() => navigate("/login"), 2000);
       } else {
         setMessage(`❌ ${data.error || "Error al restablecer la contraseña"}`);
       }
