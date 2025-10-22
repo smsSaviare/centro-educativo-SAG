@@ -52,20 +52,18 @@ router.post("/forgot-password", async (req, res) => {
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
 
-    // Crear token y guardarlo temporalmente
     const token = crypto.randomBytes(20).toString("hex");
     passwordResetTokens[token] = { email, expires: Date.now() + 3600000 }; // 1 hora
 
-    // URL que recibe el usuario (frontend)
     const resetLink = `https://tu-frontend.com/reset-password?token=${token}`;
 
-    // Enviar correo
     await sendEmail(
       email,
       "Restablecer contraseña - Centro Educativo SAG",
-      `<p>Hola ${user.name}, haz clic en el enlace para restablecer tu contraseña:</p>
+      `<p>Hola ${user.name},</p>
+       <p>Haz clic en el enlace para restablecer tu contraseña:</p>
        <a href="${resetLink}">${resetLink}</a>
-       <p>El enlace expirará en 1 hora.</p>`
+       <p>Este enlace expirará en 1 hora.</p>`
     );
 
     res.json({ message: "Se ha enviado un correo para restablecer la contraseña" });
