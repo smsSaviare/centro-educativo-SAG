@@ -68,7 +68,7 @@ export default function Login() {
         <p className="mt-4 text-center text-red-500">{message}</p>
 
         <p className="mt-4 text-center">
-          <Link to="/#/forgot" className="text-green-700 hover:underline">
+          <Link to="/forgot" className="text-green-700 hover:underline">
             ¿Olvidaste tu contraseña?
           </Link>
         </p>
