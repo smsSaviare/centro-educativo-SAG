@@ -1,15 +1,23 @@
 // src/components/ResetPassword.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { resetPassword } from "../api";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function ResetPassword() {
+  const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
 
-  const token = searchParams.get("token") || ""; // toma token de la URL
+  // Extrae el token de la URL con HashRouter
+  useEffect(() => {
+    const hash = location.hash; // ej: "#/reset-password?token=abc123"
+    const queryString = hash.split("?")[1];
+    const params = new URLSearchParams(queryString);
+    const t = params.get("token");
+    if (t) setToken(t);
+  }, [location]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -20,9 +28,9 @@ export default function ResetPassword() {
 
       if (data.message) {
         setMessage("✅ Contraseña restablecida con éxito");
-        setTimeout(() => navigate("/login"), 2000);
+        setTimeout(() => navigate("/#/login"), 2000);
       } else {
-        setMessage("❌ Error al restablecer la contraseña");
+        setMessage(`❌ ${data.error || "Error al restablecer la contraseña"}`);
       }
     } catch (error) {
       console.error(error);

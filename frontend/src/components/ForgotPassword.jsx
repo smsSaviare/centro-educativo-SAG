@@ -17,7 +17,8 @@ export default function ForgotPassword() {
 
       if (data.message) {
         setMessage("✅ Revisa tu correo para el token de recuperación");
-        setTimeout(() => navigate("/reset-password"), 2000); // Redirige al reset
+        // Redirige a /reset-password, GH Pages usa HashRouter
+        setTimeout(() => navigate("/#/reset-password"), 2000);
       } else {
         setMessage("❌ Ocurrió un error al enviar el token");
       }
