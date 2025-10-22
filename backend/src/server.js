@@ -1,7 +1,9 @@
 require("dotenv").config();
-const app = require("./src/app");
-const sequelize = require("./src/config/database");
-const User = require("./src/models/User");
+
+const app = require("./app"); // ✅ app.js está en la misma carpeta que server.js
+const sequelize = require("./config/database"); // ✅ config/database.js
+const User = require("./models/User"); // ✅ models/User.js
+const bcrypt = require("bcryptjs");
 
 async function startServer() {
   try {
@@ -12,14 +14,20 @@ async function startServer() {
     const adminEmail = "admin@saviare.com";
     const adminExists = await User.findOne({ where: { email: adminEmail } });
     if (!adminExists) {
-      const bcrypt = require("bcryptjs");
       const passwordHash = await bcrypt.hash("admin123", 10);
-      await User.create({ name: "Administrador", email: adminEmail, passwordHash, role: "admin" });
+      await User.create({
+        name: "Administrador",
+        email: adminEmail,
+        passwordHash,
+        role: "admin",
+      });
       console.log("✅ Usuario administrador creado");
     }
 
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => console.log(`🚀 Servidor online en puerto ${PORT}`));
+    app.listen(PORT, () =>
+      console.log(`🚀 Servidor online en puerto ${PORT}`)
+    );
   } catch (err) {
     console.error("❌ Error al iniciar servidor:", err);
   }
