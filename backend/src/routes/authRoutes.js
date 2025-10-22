@@ -2,48 +2,10 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const User = require("../models/User");
-const sendEmail = require("../utils/mailer"); // tu función de envío de correo
+const sendEmail = require("../utils/mailer");
 
 const router = express.Router();
-const passwordResetTokens = {}; // token temporal en memoria
-
-// -------------------- Registro --------------------
-router.post("/register", async (req, res) => {
-  try {
-    const { name, document, email, password, phone, birthDate, role } = req.body;
-    if (!name || !email || !password)
-      return res.status(400).json({ error: "Campos obligatorios faltantes" });
-
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) return res.status(400).json({ error: "Usuario ya registrado" });
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const newUser = await User.create({ name, document, email, passwordHash, phone, birthDate, role });
-
-    res.status(201).json({ id: newUser.id, message: "Usuario registrado con éxito" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// -------------------- Login --------------------
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
-
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.status(400).json({ error: "Contraseña incorrecta" });
-
-    const token = crypto.randomBytes(16).toString("hex");
-    res.json({ token, role: user.role });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
+const passwordResetTokens = {};
 
 // -------------------- Forgot Password --------------------
 router.post("/forgot-password", async (req, res) => {
@@ -52,11 +14,14 @@ router.post("/forgot-password", async (req, res) => {
     const user = await User.findOne({ where: { email } });
     if (!user) return res.status(400).json({ error: "Usuario no encontrado" });
 
+    // Generar token y guardarlo
     const token = crypto.randomBytes(20).toString("hex");
     passwordResetTokens[token] = { email, expires: Date.now() + 3600000 }; // 1 hora
 
-    const resetLink = `https://tu-frontend.com/reset-password?token=${token}`;
+    // Link dinámico usando FRONTEND_URL
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
 
+    // Enviar correo
     await sendEmail(
       email,
       "Restablecer contraseña - Centro Educativo SAG",

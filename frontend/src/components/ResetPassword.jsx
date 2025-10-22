@@ -1,3 +1,4 @@
+// src/components/ResetPassword.jsx
 import { useState } from "react";
 import { resetPassword } from "../api";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -7,7 +8,8 @@ export default function ResetPassword() {
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") || "";
+
+  const token = searchParams.get("token") || ""; // toma token de la URL
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -15,13 +17,12 @@ export default function ResetPassword() {
 
     try {
       const data = await resetPassword(token, newPassword);
+
       if (data.message) {
         setMessage("✅ Contraseña restablecida con éxito");
         setTimeout(() => navigate("/login"), 2000);
-      } else if (data.error) {
-        setMessage(`❌ ${data.error}`);
       } else {
-        setMessage("❌ Ocurrió un error inesperado");
+        setMessage("❌ Error al restablecer la contraseña");
       }
     } catch (error) {
       console.error(error);
@@ -30,9 +31,9 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-      <div className="bg-white p-10 rounded-2xl shadow-md w-full max-w-md">
-        <h2 className="text-3xl font-bold text-green-700 mb-6 text-center">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <div className="bg-white p-6 md:p-10 rounded-2xl shadow-md w-full max-w-md">
+        <h2 className="text-2xl md:text-3xl font-bold text-green-700 mb-6 text-center">
           Restablecer Contraseña
         </h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -42,16 +43,18 @@ export default function ResetPassword() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
-            className="border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="w-full border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
           />
           <button
             type="submit"
-            className="bg-green-700 text-white py-2 rounded font-semibold hover:bg-green-600 transition"
+            className="w-full bg-green-700 text-white py-2 rounded font-semibold hover:bg-green-600 transition"
           >
             Restablecer
           </button>
         </form>
-        <p className="mt-4 text-center text-red-500">{message}</p>
+        {message && (
+          <p className="mt-4 text-center text-red-500 break-words">{message}</p>
+        )}
       </div>
     </div>
   );
