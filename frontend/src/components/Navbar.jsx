@@ -10,9 +10,11 @@ import {
   UserButton,
   useClerk,
 } from "@clerk/clerk-react";
+import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { signOut } = useClerk();
 
@@ -23,26 +25,40 @@ export default function Navbar() {
   }, []);
 
   const navLinkClass =
-    "hover:text-green-600 transition cursor-pointer font-semibold";
+    "block px-4 py-2 hover:text-green-600 transition font-semibold";
 
   const handleLogout = async () => {
     try {
-      // 🔹 Cierra sesión y redirige a la URL del home
       await signOut({
         redirectUrl: "https://smssaviare.github.io/centro-educativo-SAG/#/",
       });
-
-      // 🔹 Espera un poco y recarga la app para actualizar el estado de Clerk
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      setTimeout(() => window.location.reload(), 500);
     } catch (err) {
       console.error("Error cerrando sesión:", err);
-      // Fallback en caso de error
       window.location.href =
         "https://smssaviare.github.io/centro-educativo-SAG/#/";
     }
   };
+
+  const NavLinks = () => (
+    <>
+      <div className={navLinkClass} onClick={() => navigate("/")}>
+        Inicio
+      </div>
+      <div className={navLinkClass} onClick={() => navigate("/courses")}>
+        Cursos
+      </div>
+      <div className={navLinkClass} onClick={() => navigate("/dashboard")}>
+        Panel
+      </div>
+      <div
+        onClick={() => (window.location.hash = "#contacto")}
+        className={`${navLinkClass} bg-green-700 text-white rounded-full hover:bg-green-600 text-center`}
+      >
+        Contacto
+      </div>
+    </>
+  );
 
   return (
     <motion.nav
@@ -56,7 +72,7 @@ export default function Navbar() {
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-        {/* Logo / Marca */}
+        {/* Logo */}
         <div
           onClick={() => navigate("/")}
           className="text-2xl font-bold text-green-700 cursor-pointer"
@@ -64,29 +80,31 @@ export default function Navbar() {
           ✈️ Saviare
         </div>
 
-        {/* Enlaces */}
-        <div className="flex space-x-6 text-green-800 items-center">
-          <div className={navLinkClass} onClick={() => navigate("/")}>
-            Inicio
-          </div>
-          <div className={navLinkClass} onClick={() => navigate("/courses")}>
-            Cursos
-          </div>
-          <div className={navLinkClass} onClick={() => navigate("/dashboard")}>
-            Panel
-          </div>
+        {/* Botón menú móvil */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="md:hidden p-2 text-green-700 hover:text-green-500 transition"
+        >
+          {menuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {/* Enlaces en escritorio */}
+        <div className="hidden md:flex items-center space-x-6 text-green-800">
+          <NavLinks />
 
           <SignedOut>
-            <SignInButton mode="modal">
-              <button className="bg-green-700 text-white px-4 py-2 rounded-full hover:bg-green-600 transition cursor-pointer">
-                Acceder
-              </button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-500 transition cursor-pointer">
-                Registrarse
-              </button>
-            </SignUpButton>
+            <div className="flex items-center space-x-3">
+              <SignInButton mode="modal">
+                <button className="bg-green-700 text-white px-4 py-2 rounded-full hover:bg-green-600 transition">
+                  Acceder
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-500 transition">
+                  Registrarse
+                </button>
+              </SignUpButton>
+            </div>
           </SignedOut>
 
           <SignedIn>
@@ -94,21 +112,44 @@ export default function Navbar() {
               <UserButton />
               <button
                 onClick={handleLogout}
-                className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition cursor-pointer"
+                className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition"
               >
                 Cerrar sesión
               </button>
             </div>
           </SignedIn>
-
-          <div
-            onClick={() => (window.location.hash = "#contacto")}
-            className="bg-green-700 text-white px-4 py-2 rounded-full hover:bg-green-600 transition cursor-pointer"
-          >
-            Contacto
-          </div>
         </div>
       </div>
+
+      {/* Menú móvil desplegable */}
+      {menuOpen && (
+        <div className="md:hidden bg-white shadow-lg border-t border-green-100 text-green-800 px-6 py-4 space-y-3">
+          <NavLinks />
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="w-full bg-green-700 text-white py-2 rounded-full hover:bg-green-600">
+                Acceder
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="w-full bg-blue-600 text-white py-2 rounded-full hover:bg-blue-500 mt-2">
+                Registrarse
+              </button>
+            </SignUpButton>
+          </SignedOut>
+          <SignedIn>
+            <div className="flex flex-col gap-3">
+              <UserButton />
+              <button
+                onClick={handleLogout}
+                className="bg-red-500 text-white py-2 rounded-full hover:bg-red-600"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </SignedIn>
+        </div>
+      )}
     </motion.nav>
   );
 }
