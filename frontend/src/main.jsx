@@ -12,7 +12,9 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("❌ Falta la variable VITE_CLERK_PUBLISHABLE_KEY en .env");
 }
 
-// ✅ Custom wrapper para manejar Clerk + HashRouter sin conflictos
+// 🔧 URL base correcta para GitHub Pages
+const BASE_URL = "https://smssaviare.github.io/centro-educativo-SAG/#";
+
 function ClerkWithHashRouter() {
   const navigate = useNavigate();
 
@@ -20,13 +22,14 @@ function ClerkWithHashRouter() {
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY}
       navigate={(to) => {
-        // Forzar navegación con hash (#)
+        console.log("🔁 Clerk intentó navegar a:", to);
+        // 🔒 Redirección segura dentro del hash router
         if (to.startsWith("/")) {
-          window.location.hash = to;
-        } else if (!to.startsWith("#")) {
-          window.location.hash = `#${to}`;
+          window.location.replace(`${BASE_URL}${to}`);
+        } else if (to.startsWith("#")) {
+          window.location.replace(`${BASE_URL}${to.substring(1)}`);
         } else {
-          window.location.hash = to;
+          window.location.replace(`${BASE_URL}/${to}`);
         }
         navigate(to);
       }}

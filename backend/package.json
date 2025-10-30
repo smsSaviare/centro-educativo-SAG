@@ -1,17 +1,13 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Backend del Centro Educativo SAG - API REST con Express y Clerk",
-  "main": "src/server.js",
-  "type": "module",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "build": "echo \"No build step required for backend\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "Centro Educativo SAG - Saviare",
+  "author": "",
   "license": "ISC",
   "dependencies": {
     "@clerk/backend": "^2.19.0",
@@ -27,8 +23,5 @@
     "pg": "^8.16.3",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.4"
   }
 }

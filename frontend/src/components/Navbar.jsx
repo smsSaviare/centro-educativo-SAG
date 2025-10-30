@@ -27,12 +27,20 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      // 🔹 Cierra sesión y redirige a la URL del home
+      await signOut({
+        redirectUrl: "https://smssaviare.github.io/centro-educativo-SAG/#/",
+      });
+
+      // 🔹 Espera un poco y recarga la app para actualizar el estado de Clerk
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (err) {
       console.error("Error cerrando sesión:", err);
-    } finally {
-      // ✅ Redirige correctamente al inicio (sin perder el #)
-      window.location.hash = "/";
+      // Fallback en caso de error
+      window.location.href =
+        "https://smssaviare.github.io/centro-educativo-SAG/#/";
     }
   };
 

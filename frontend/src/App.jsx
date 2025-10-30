@@ -52,7 +52,7 @@ async function syncUserToBackend(user) {
 }
 
 /**
- * Requiere un rol específico desde publicMetadata.role
+ * Componente que requiere un rol específico desde publicMetadata.role
  */
 function RequireRole({ user, role, children }) {
   const userRole = user?.publicMetadata?.role || null;
@@ -70,11 +70,12 @@ function App() {
   return (
     <>
       <Navbar />
+
       <Routes>
-        {/* Página principal */}
+        {/* 🏠 Página principal */}
         <Route path="/" element={<Home />} />
 
-        {/* Panel */}
+        {/* 📊 Panel de control */}
         <Route
           path="/dashboard"
           element={
@@ -92,7 +93,7 @@ function App() {
           }
         />
 
-        {/* Vista de curso */}
+        {/* 📚 Vista del curso */}
         <Route
           path="/course/:id"
           element={
@@ -110,7 +111,7 @@ function App() {
           }
         />
 
-        {/* Editor (solo profesores) */}
+        {/* ✏️ Editor de cursos (solo profesores) */}
         <Route
           path="/editor"
           element={
@@ -127,6 +128,20 @@ function App() {
             <SignedOut>
               <RedirectToSignIn />
             </SignedOut>
+          }
+        />
+
+        {/* 🚪 Redirección segura para logout (sin 404) */}
+        <Route
+          path="/logout"
+          element={
+            <>
+              {(() => {
+                localStorage.clear();
+                window.location.hash = "#/";
+                return null;
+              })()}
+            </>
           }
         />
       </Routes>
