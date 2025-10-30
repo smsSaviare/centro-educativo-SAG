@@ -5,7 +5,7 @@
 // definidas en los modelos (como User.js).
 
 const sequelize = require('../config/database');
-const User = require('../models/User');
+const User = require('../models/UserModel');
 
 async function syncDatabase() {
   try {

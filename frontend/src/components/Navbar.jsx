@@ -1,7 +1,6 @@
 // src/components/Navbar.jsx
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   SignedIn,
   SignedOut,
@@ -9,14 +8,16 @@ import {
   SignUpButton,
   UserButton,
   useClerk,
+  useUser,
 } from "@clerk/clerk-react";
 import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const navigate = useNavigate();
   const { signOut } = useClerk();
+  const { user } = useUser();
+  const role = user?.publicMetadata?.role || "student";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -25,7 +26,7 @@ export default function Navbar() {
   }, []);
 
   const navLinkClass =
-    "block px-4 py-2 hover:text-green-600 transition font-semibold";
+    "block px-4 py-2 hover:text-green-600 transition font-semibold cursor-pointer";
 
   const handleLogout = async () => {
     try {
@@ -40,19 +41,34 @@ export default function Navbar() {
     }
   };
 
+  // ✅ Navegación segura para GitHub Pages (HashRouter)
+  const goTo = (path) => {
+    if (path.startsWith("#")) {
+      window.location.hash = path;
+    } else {
+      window.location.hash = `#${path}`;
+    }
+    setMenuOpen(false);
+  };
+
   const NavLinks = () => (
     <>
-      <div className={navLinkClass} onClick={() => navigate("/")}>
+      <div className={navLinkClass} onClick={() => goTo("/")}>
         Inicio
       </div>
-      <div className={navLinkClass} onClick={() => navigate("/courses")}>
+      <div className={navLinkClass} onClick={() => goTo("/courses")}>
         Cursos
       </div>
-      <div className={navLinkClass} onClick={() => navigate("/dashboard")}>
-        Panel
-      </div>
+
+      {/* Solo docentes ven este botón */}
+      {role === "teacher" && (
+        <div className={navLinkClass} onClick={() => goTo("/dashboard")}>
+          Panel docente
+        </div>
+      )}
+
       <div
-        onClick={() => (window.location.hash = "#contacto")}
+        onClick={() => goTo("/contacto")}
         className={`${navLinkClass} bg-green-700 text-white rounded-full hover:bg-green-600 text-center`}
       >
         Contacto
@@ -74,7 +90,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo */}
         <div
-          onClick={() => navigate("/")}
+          onClick={() => goTo("/")}
           className="text-2xl font-bold text-green-700 cursor-pointer"
         >
           ✈️ Saviare
@@ -88,7 +104,7 @@ export default function Navbar() {
           {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
 
-        {/* Enlaces en escritorio */}
+        {/* Enlaces escritorio */}
         <div className="hidden md:flex items-center space-x-6 text-green-800">
           <NavLinks />
 
@@ -121,10 +137,11 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Menú móvil desplegable */}
+      {/* Menú móvil */}
       {menuOpen && (
         <div className="md:hidden bg-white shadow-lg border-t border-green-100 text-green-800 px-6 py-4 space-y-3">
           <NavLinks />
+
           <SignedOut>
             <SignInButton mode="modal">
               <button className="w-full bg-green-700 text-white py-2 rounded-full hover:bg-green-600">
@@ -137,6 +154,7 @@ export default function Navbar() {
               </button>
             </SignUpButton>
           </SignedOut>
+
           <SignedIn>
             <div className="flex flex-col gap-3">
               <UserButton />

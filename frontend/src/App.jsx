@@ -5,39 +5,38 @@ import Home from "./components/Home";
 import Dashboard from "./components/Dashboard";
 import CourseView from "./components/CourseView";
 import CourseEditor from "./components/CourseEditor";
+import Contacto from "./components/Contacto"; // ✅ correctamente importado
 import {
   SignedIn,
   SignedOut,
   RedirectToSignIn,
   useUser,
+  useAuth,
 } from "@clerk/clerk-react";
 import { useEffect } from "react";
 
 /**
- * Sincroniza el usuario de Clerk con tu backend.
+ * 🔄 Sincroniza el usuario de Clerk con el backend
  */
-async function syncUserToBackend(user) {
+async function syncUserToBackend(user, getToken) {
   try {
-    const token = await user.getToken();
-    const response = await fetch(
-      "https://sag-backend-b2j6.onrender.com/sync-user",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          clerkId: user.id,
-          email:
-            user.emailAddresses?.[0]?.emailAddress ||
-            user.primaryEmailAddress ||
-            "",
-          name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-          publicMetadata: user.publicMetadata || {},
-        }),
-      }
-    );
+    const token = await getToken();
+    const response = await fetch("https://sag-backend-b2j6.onrender.com/sync-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        clerkId: user.id,
+        email:
+          user.emailAddresses?.[0]?.emailAddress ||
+          user.primaryEmailAddress ||
+          "",
+        name: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        publicMetadata: user.publicMetadata || {},
+      }),
+    });
 
     if (!response.ok) {
       console.warn("⚠️ No se pudo sincronizar usuario con backend");
@@ -52,20 +51,21 @@ async function syncUserToBackend(user) {
 }
 
 /**
- * Componente que requiere un rol específico desde publicMetadata.role
+ * 🔐 Requiere rol específico
  */
 function RequireRole({ user, role, children }) {
   const userRole = user?.publicMetadata?.role || null;
   if (userRole === role) return children;
-  return <Dashboard />; // fallback si no tiene el rol correcto
+  return <Dashboard />;
 }
 
 function App() {
   const { user, isSignedIn } = useUser();
+  const { getToken } = useAuth();
 
   useEffect(() => {
-    if (isSignedIn && user) syncUserToBackend(user);
-  }, [isSignedIn, user]);
+    if (isSignedIn && user) syncUserToBackend(user, getToken);
+  }, [isSignedIn, user, getToken]);
 
   return (
     <>
@@ -75,7 +75,28 @@ function App() {
         {/* 🏠 Página principal */}
         <Route path="/" element={<Home />} />
 
-        {/* 📊 Panel de control */}
+        {/* 📞 Página de contacto */}
+        <Route path="/contacto" element={<Contacto />} />
+
+        {/* 📚 Cursos disponibles o del usuario */}
+        <Route
+          path="/courses"
+          element={
+            <SignedIn>
+              <Dashboard />
+            </SignedIn>
+          }
+        />
+        <Route
+          path="/courses"
+          element={
+            <SignedOut>
+              <RedirectToSignIn />
+            </SignedOut>
+          }
+        />
+
+        {/* 📊 Panel docente */}
         <Route
           path="/dashboard"
           element={
@@ -93,7 +114,7 @@ function App() {
           }
         />
 
-        {/* 📚 Vista del curso */}
+        {/* 📘 Vista del curso */}
         <Route
           path="/course/:id"
           element={
@@ -111,7 +132,7 @@ function App() {
           }
         />
 
-        {/* ✏️ Editor de cursos (solo profesores) */}
+        {/* ✏️ Editor (solo docentes) */}
         <Route
           path="/editor"
           element={
@@ -131,7 +152,7 @@ function App() {
           }
         />
 
-        {/* 🚪 Redirección segura para logout (sin 404) */}
+        {/* 🚪 Cierre de sesión seguro */}
         <Route
           path="/logout"
           element={

@@ -1,60 +1,96 @@
-import { clerkClient } from "@clerk/clerk-react"; // sólo para referencia; en componentes se usa useUser
+// src/api.js
+// Centralización de llamadas al backend con Clerk + Fetch API
 
-const API_BASE_URL = "https://sag-backend-b2j6.onrender.com/api/auth"; // agrega /api/auth aquí
+// ✅ Usa variable de entorno si existe, o el valor por defecto en Render
+const API_BASE = import.meta.env.VITE_API_BASE || "https://sag-backend-b2j6.onrender.com/api/auth";
 
+/**
+ * Helper genérico para hacer peticiones al backend
+ */
+async function apiRequest(endpoint, { method = "GET", headers = {}, body, clerkId, token } = {}) {
+  const url = `${API_BASE}${endpoint}`;
+  const opts = { method, headers: { "Content-Type": "application/json", ...headers } };
+
+  if (clerkId) opts.headers["x-clerk-id"] = clerkId;
+  if (token) opts.headers["Authorization"] = `Bearer ${token}`;
+  if (body) opts.body = JSON.stringify(body);
+
+  const res = await fetch(url, opts);
+
+  if (!res.ok) {
+    const msg = await res.text().catch(() => res.statusText);
+    throw new Error(`Error ${res.status}: ${msg}`);
+  }
+
+  return res.json().catch(() => ({}));
+}
+
+/* ============================================================
+   📚 Funciones específicas
+   ============================================================ */
+
+// Crear curso
 export async function postCourse(payload, clerkId) {
-  const res = await fetch(`${API_BASE}/courses`, {
+  return apiRequest("/courses", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-clerk-id": clerkId },
-    body: JSON.stringify(payload),
+    body: payload,
+    clerkId,
   });
-  return res.json();
 }
 
+// Asignar estudiante a un curso
 export async function assignStudent(courseId, studentClerkId, teacherClerkId) {
-  const res = await fetch(`${API_BASE}/courses/${courseId}/assign`, {
+  return apiRequest(`/courses/${courseId}/assign`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-clerk-id": teacherClerkId },
-    body: JSON.stringify({ studentClerkId }),
+    body: { studentClerkId },
+    clerkId: teacherClerkId,
   });
-  return res.json();
 }
 
+// Obtener cursos del usuario actual
 export async function getMyCourses(clerkId) {
-  const res = await fetch(`${API_BASE}/courses/my-courses`, {
-    headers: { "Content-Type": "application/json", "x-clerk-id": clerkId },
+  return apiRequest("/courses/my-courses", {
+    method: "GET",
+    clerkId,
   });
-  return res.json();
 }
 
-export async function apiFetch(endpoint, options = {}) {
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  return res.json();
+/* ============================================================
+   👤 Autenticación y usuarios
+   ============================================================ */
+
+export async function registerUser(data) {
+  return apiRequest("/register", { method: "POST", body: data });
 }
 
-// Obtener cursos
+export async function loginUser(data) {
+  return apiRequest("/login", { method: "POST", body: data });
+}
+
+export async function forgotPassword(email) {
+  return apiRequest("/forgot-password", { method: "POST", body: { email } });
+}
+
+export async function resetPassword(token, newPassword) {
+  return apiRequest("/reset-password", {
+    method: "POST",
+    body: { token, newPassword },
+  });
+}
+
+/* ============================================================
+   🧠 Utilidades
+   ============================================================ */
+
+// Obtener todos los cursos (sin filtrar)
 export function getCourses() {
-  return apiFetch("/courses"); // o "/api/courses" según tu backend
+  return apiRequest("/courses");
 }
 
-// Registro de usuario
-export function registerUser(data) {
-  return apiFetch("/register", { method: "POST", body: JSON.stringify(data) });
+// Sincronizar usuario con backend (usado desde App.jsx)
+export async function syncUserBackend(payload, token) {
+  return apiRequest("/sync-user", { method: "POST", body: payload, token });
 }
 
-// Login de usuario
-export function loginUser(data) {
-  return apiFetch("/login", { method: "POST", body: JSON.stringify(data) });
-}
-
-// Forgot / Reset password
-export function forgotPassword(email) {
-  return apiFetch("/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
-}
-
-export function resetPassword(token, newPassword) {
-  return apiFetch("/reset-password", { method: "POST", body: JSON.stringify({ token, newPassword }) });
-}
+// Exporta para depuración
+export { API_BASE };
