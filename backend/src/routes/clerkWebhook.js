@@ -1,34 +1,34 @@
-import express from "express";
-import User from "../models/UserModel.js";
-
+// backend/src/routes/clerkWebhook.js
+const express = require("express");
 const router = express.Router();
+const User = require("../models/UserModel");
 
-router.post("/webhooks/clerk", express.json(), async (req, res) => {
-  const event = req.body;
-
+router.post("/clerk-webhook", async (req, res) => {
   try {
-    if (event.type === "user.created") {
-      const clerkUser = event.data;
+    const { id, email_addresses, first_name, last_name } = req.body.data || {};
+    const email = email_addresses?.[0]?.email_address || "sin_email@correo.com";
 
-      await User.create({
-        clerkId: clerkUser.id,
-        email: clerkUser.email_addresses[0].email_address,
-        name: `${clerkUser.first_name || ""} ${clerkUser.last_name || ""}`.trim(),
-        role: clerkUser.public_metadata.role || "student"
-      });
-      console.log("✅ Usuario creado en base de datos:", clerkUser.id);
-    }
+    const [user, created] = await User.findOrCreate({
+      where: { clerkId: id },
+      defaults: {
+        clerkId: id,
+        email,
+        firstName: first_name || "",
+        lastName: last_name || "",
+        role: "student",
+      },
+    });
 
-    if (event.type === "user.deleted") {
-      await User.destroy({ where: { clerkId: event.data.id } });
-      console.log("🗑️ Usuario eliminado:", event.data.id);
-    }
-
-    res.status(200).json({ received: true });
-  } catch (err) {
-    console.error("❌ Error en webhook Clerk:", err);
-    res.status(500).json({ error: err.message });
+    res.json({
+      success: true,
+      message: created ? "Usuario creado" : "Usuario existente actualizado",
+      user,
+    });
+  } catch (error) {
+    console.error("❌ Error en Clerk Webhook:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-export default router;
+// ✅ exportación correcta
+module.exports = router;
