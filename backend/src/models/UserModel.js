@@ -1,4 +1,4 @@
-// backend/src/models/User.js
+// backend/src/models/UserModel.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
