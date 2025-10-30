@@ -1,10 +1,10 @@
-// backend/src/utils/server.js
+// backend/src/server.js
 require("dotenv").config();
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const sequelize = require("../../config/database");
-const User = require("../../models/UserModel");
-const clerkWebhookRouter = require("../../routes/clerkWebhook");
+const sequelize = require("./config/database"); // 👈 corregido
+const User = require("./models/UserModel");     // 👈 corregido
+const clerkWebhookRouter = require("./routes/clerkWebhook"); // 👈 corregido
 const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
 
 const app = express();
@@ -64,7 +64,7 @@ async function startServer() {
         email: adminEmail,
         firstName: "Administrador",
         lastName: "Sistema",
-        role: "admin", // ✅ ahora sí permitido
+        role: "admin",
       },
     });
 
