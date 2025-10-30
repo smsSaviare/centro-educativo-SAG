@@ -1,4 +1,31 @@
+import { clerkClient } from "@clerk/clerk-react"; // sólo para referencia; en componentes se usa useUser
+
 const API_BASE_URL = "https://sag-backend-b2j6.onrender.com/api/auth"; // agrega /api/auth aquí
+
+export async function postCourse(payload, clerkId) {
+  const res = await fetch(`${API_BASE}/courses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-clerk-id": clerkId },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+export async function assignStudent(courseId, studentClerkId, teacherClerkId) {
+  const res = await fetch(`${API_BASE}/courses/${courseId}/assign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-clerk-id": teacherClerkId },
+    body: JSON.stringify({ studentClerkId }),
+  });
+  return res.json();
+}
+
+export async function getMyCourses(clerkId) {
+  const res = await fetch(`${API_BASE}/courses/my-courses`, {
+    headers: { "Content-Type": "application/json", "x-clerk-id": clerkId },
+  });
+  return res.json();
+}
 
 export async function apiFetch(endpoint, options = {}) {
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {

@@ -1,59 +1,59 @@
 // src/components/Dashboard.jsx
 import { useEffect, useState } from "react";
-import { getCourses } from "../api";
-import { useNavigate } from "react-router-dom";
+import { useUser, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { getMyCourses } from "../api";
 
 export default function Dashboard() {
+  const { user } = useUser();
+  const clerkId = user?.id;
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const role = localStorage.getItem("role");
-  const navigate = useNavigate();
+
+  const role = user?.publicMetadata?.role || "student";
 
   useEffect(() => {
-    async function fetchCourses() {
+    if (!clerkId) return;
+    (async () => {
       try {
-        const data = await getCourses();
-        setCourses(data);
-      } catch (err) {
-        console.error(err);
+        const data = await getMyCourses(clerkId);
+        setCourses(data || []);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
-    }
-
-    fetchCourses();
-  }, []);
+    })();
+  }, [clerkId]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-4xl font-bold text-green-700 mb-6 text-center">
-        {role === "teacher" ? "Panel del Profesor" : "Mis Cursos"}
-      </h1>
+    <>
+      <SignedOut><RedirectToSignIn/></SignedOut>
+      <SignedIn>
+        <div className="p-6 min-h-screen">
+          <h1 className="text-3xl font-bold text-green-700">Bienvenido {user.firstName || user.emailAddresses[0].emailAddress}</h1>
 
-      {loading ? (
-        <p className="text-center text-gray-500">Cargando cursos...</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.length === 0 && (
-            <p className="col-span-full text-center text-gray-500">
-              No hay cursos disponibles.
-            </p>
-          )}
-          {courses.map((course) => (
-            <div
-              key={course.id}
-              className="bg-white shadow-md rounded-xl p-4 hover:shadow-xl transition cursor-pointer"
-              onClick={() => navigate(role === "teacher" ? "/editor" : `/course/${course.id}`)}
-            >
-              <h2 className="text-2xl font-semibold text-green-700">{course.title}</h2>
-              <p className="text-gray-600 mt-2">{course.description}</p>
-              <p className="mt-3 text-sm text-gray-400">
-                {role === "teacher" ? "Haz clic para editar" : "Haz clic para ver"}
-              </p>
+          {role === "teacher" && (
+            <div className="mt-4">
+              <button onClick={() => window.location.href = "#/editor"} className="bg-green-700 text-white px-4 py-2 rounded">Crear curso</button>
             </div>
-          ))}
+          )}
+
+          <section className="mt-6">
+            {loading ? <p>Cargando...</p> :
+              courses.length === 0 ? <p>No hay cursos</p> :
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {courses.map(c => (
+                  <div key={c.id} className="bg-white p-4 rounded shadow">
+                    <h3 className="text-xl font-semibold text-green-700">{c.title}</h3>
+                    <p className="text-gray-600">{c.description}</p>
+                    <a className="text-green-600 mt-2 inline-block" href={`#/course/${c.id}`}>Abrir</a>
+                  </div>
+                ))}
+              </div>
+            }
+          </section>
         </div>
-      )}
-    </div>
+      </SignedIn>
+    </>
   );
 }

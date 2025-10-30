@@ -2,10 +2,19 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  UserButton,
+  useClerk,
+} from "@clerk/clerk-react";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
+  const { signOut } = useClerk();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -15,6 +24,17 @@ export default function Navbar() {
 
   const navLinkClass =
     "hover:text-green-600 transition cursor-pointer font-semibold";
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Error cerrando sesión:", err);
+    } finally {
+      // ✅ Redirige correctamente al inicio (sin perder el #)
+      window.location.hash = "/";
+    }
+  };
 
   return (
     <motion.nav
@@ -37,7 +57,7 @@ export default function Navbar() {
         </div>
 
         {/* Enlaces */}
-        <div className="flex space-x-6 text-green-800">
+        <div className="flex space-x-6 text-green-800 items-center">
           <div className={navLinkClass} onClick={() => navigate("/")}>
             Inicio
           </div>
@@ -47,11 +67,34 @@ export default function Navbar() {
           <div className={navLinkClass} onClick={() => navigate("/dashboard")}>
             Panel
           </div>
-          <div className={navLinkClass} onClick={() => navigate("/login")}>
-            Acceder
-          </div>
+
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="bg-green-700 text-white px-4 py-2 rounded-full hover:bg-green-600 transition cursor-pointer">
+                Acceder
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-500 transition cursor-pointer">
+                Registrarse
+              </button>
+            </SignUpButton>
+          </SignedOut>
+
+          <SignedIn>
+            <div className="flex items-center gap-3">
+              <UserButton />
+              <button
+                onClick={handleLogout}
+                className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition cursor-pointer"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </SignedIn>
+
           <div
-            onClick={() => navigate("#contacto")}
+            onClick={() => (window.location.hash = "#contacto")}
             className="bg-green-700 text-white px-4 py-2 rounded-full hover:bg-green-600 transition cursor-pointer"
           >
             Contacto

@@ -1,12 +1,10 @@
 // src/components/Home.jsx
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import avionFondo from "../assets/avion.jpg";
 import avionAnimado from "../assets/avion.png";
+import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 
 export default function Home() {
-  const navigate = useNavigate();
-
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black">
       {/* Fondo */}
@@ -30,24 +28,34 @@ export default function Home() {
           Formación práctica en tecnología, control y aviación 🚀
         </p>
 
-        {/* Botones centrados usando useNavigate */}
+        {/* 🔹 Botones Clerk */}
         <div className="mt-8 flex justify-center gap-6 flex-wrap">
-          <button
-            onClick={() => navigate("/login")}
-            className="bg-green-700 text-white font-semibold px-6 py-3 rounded-full shadow-md hover:bg-green-600 transition-all"
-          >
-            Iniciar sesión
-          </button>
-          <button
-            onClick={() => navigate("/register")}
-            className="bg-white text-green-700 border border-green-700 font-semibold px-6 py-3 rounded-full shadow-md hover:bg-green-50 transition-all"
-          >
-            Registrarse
-          </button>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <button className="bg-green-700 text-white font-semibold px-6 py-3 rounded-full shadow-md hover:bg-green-600 transition-all">
+                Iniciar sesión
+              </button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <button className="bg-white text-green-700 border border-green-700 font-semibold px-6 py-3 rounded-full shadow-md hover:bg-green-50 transition-all">
+                Registrarse
+              </button>
+            </SignUpButton>
+          </SignedOut>
+
+          {/* 🔹 Si el usuario ya está autenticado */}
+          <SignedIn>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-green-700 font-semibold text-lg">
+                ¡Bienvenido de nuevo!
+              </p>
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </SignedIn>
         </div>
       </motion.div>
 
-      {/* Avión animado solo en movimiento horizontal */}
+      {/* Avión animado */}
       <motion.img
         src={avionAnimado}
         alt="Avión Saviare"
