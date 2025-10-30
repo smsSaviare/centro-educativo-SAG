@@ -1,13 +1,33 @@
 // backend/src/server.js
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const bcrypt = require("bcryptjs");
-const sequelize = require("./config/database"); // 👈 corregido
-const User = require("./models/UserModel");     // 👈 corregido
-const clerkWebhookRouter = require("./routes/clerkWebhook"); // 👈 corregido
+const sequelize = require("./config/database");
+const User = require("./models/UserModel");
+const clerkWebhookRouter = require("./routes/clerkWebhook");
 const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
 
 const app = express();
+
+// ✅ Configurar CORS
+const allowedOrigins = [
+  "https://smssaviare.github.io", // tu frontend en GitHub Pages
+  "http://localhost:5173", // entorno local
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
+// Permitir preflight requests (importante para POST/PUT)
+app.options("*", cors());
+
 app.use(express.json());
 
 // ✅ Webhook de Clerk (crea usuarios en la DB)
