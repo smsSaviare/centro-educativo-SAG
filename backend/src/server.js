@@ -2,7 +2,7 @@
 require("dotenv").config();
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const sequelize = require("../config/database");
+const sequelize = require("./config/database");
 const User = require("../models/UserModel");
 const clerkWebhookRouter = require("../routes/clerkWebhook");
 const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
