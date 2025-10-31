@@ -42,7 +42,20 @@ app.use(
 );
 
 // 🔹 Permitir preflight requests para todas las rutas
-app.options("*", cors());
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.header("Access-Control-Allow-Origin", allowedOrigins.join(","));
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, x-clerk-id, x-clerk-signature, x-clerk-webhook-id, x-clerk-webhook-signature"
+    );
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 
 // 🔹 Middleware para parsear JSON
 app.use(express.json());
