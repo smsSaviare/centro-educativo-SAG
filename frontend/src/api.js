@@ -1,13 +1,16 @@
-// src/api.js
+// frontend/src/api.js
 // Centralización de llamadas al backend con Clerk + Fetch API
 
-// ✅ Usa variable de entorno si existe, o el valor por defecto en Render
-const API_BASE = import.meta.env.VITE_API_BASE || "https://sag-backend-b2j6.onrender.com/api/auth";
+const API_BASE =
+  import.meta.env.VITE_API_BASE || "https://sag-backend-b2j6.onrender.com";
 
 /**
  * Helper genérico para hacer peticiones al backend
  */
-async function apiRequest(endpoint, { method = "GET", headers = {}, body, clerkId, token } = {}) {
+async function apiRequest(
+  endpoint,
+  { method = "GET", headers = {}, body, clerkId, token } = {}
+) {
   const url = `${API_BASE}${endpoint}`;
   const opts = { method, headers: { "Content-Type": "application/json", ...headers } };
 
@@ -26,16 +29,12 @@ async function apiRequest(endpoint, { method = "GET", headers = {}, body, clerkI
 }
 
 /* ============================================================
-   📚 Funciones específicas
+   📚 Cursos
    ============================================================ */
 
 // Crear curso
 export async function postCourse(payload, clerkId) {
-  return apiRequest("/courses", {
-    method: "POST",
-    body: payload,
-    clerkId,
-  });
+  return apiRequest("/courses", { method: "POST", body: payload, clerkId });
 }
 
 // Asignar estudiante a un curso
@@ -49,10 +48,12 @@ export async function assignStudent(courseId, studentClerkId, teacherClerkId) {
 
 // Obtener cursos del usuario actual
 export async function getMyCourses(clerkId) {
-  return apiRequest("/courses/my-courses", {
-    method: "GET",
-    clerkId,
-  });
+  return apiRequest("/courses/my-courses", { method: "GET", clerkId });
+}
+
+// Obtener todos los estudiantes (para asignación)
+export async function getStudents(clerkId) {
+  return apiRequest("/courses/students", { method: "GET", clerkId });
 }
 
 /* ============================================================
@@ -72,10 +73,7 @@ export async function forgotPassword(email) {
 }
 
 export async function resetPassword(token, newPassword) {
-  return apiRequest("/reset-password", {
-    method: "POST",
-    body: { token, newPassword },
-  });
+  return apiRequest("/reset-password", { method: "POST", body: { token, newPassword } });
 }
 
 /* ============================================================

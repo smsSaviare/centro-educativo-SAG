@@ -1,4 +1,4 @@
-// src/components/CourseEditor.jsx
+// frontend/src/components/CourseEditor.jsx
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { postCourse, assignStudent, getMyCourses } from "../api";
@@ -27,23 +27,29 @@ export default function CourseEditor() {
         setCourses(data || []);
       } catch (err) {
         console.error("Error cargando cursos:", err);
+        setMessage("❌ Error cargando cursos");
       }
     })();
   }, [clerkId]);
 
   // 👥 Cargar lista de estudiantes desde backend
   useEffect(() => {
+    if (!clerkId) return;
     (async () => {
       try {
-        const res = await fetch("https://sag-backend-b2j6.onrender.com/api/auth/users");
+        const res = await fetch(
+          "https://sag-backend-b2j6.onrender.com/courses/students",
+          { headers: { "x-clerk-id": clerkId } }
+        );
+        if (!res.ok) throw new Error("Error obteniendo estudiantes");
         const allUsers = await res.json();
-        const onlyStudents = allUsers.filter(u => u.role === "student");
-        setStudents(onlyStudents);
+        setStudents(allUsers);
       } catch (err) {
         console.error("Error obteniendo estudiantes:", err);
+        setMessage("❌ Error obteniendo estudiantes");
       }
     })();
-  }, []);
+  }, [clerkId]);
 
   // ➕ Crear curso
   async function handleCreate(e) {
@@ -54,14 +60,18 @@ export default function CourseEditor() {
     }
     setMessage("Creando curso...");
     try {
-      const payload = { title, description: desc, resources: [{ type: "link", url: resourceUrl }] };
+      const payload = {
+        title,
+        description: desc,
+        resources: resourceUrl ? [{ type: "link", url: resourceUrl }] : [],
+      };
       const res = await postCourse(payload, clerkId);
       if (res.id) {
         setMessage("✅ Curso creado correctamente");
+        setCourses([...courses, res]);
         setTitle("");
         setDesc("");
         setResourceUrl("");
-        setCourses([...courses, res]);
       } else {
         setMessage("❌ Error al crear el curso");
       }
@@ -84,6 +94,8 @@ export default function CourseEditor() {
       const res = await assignStudent(selectedCourse, selectedStudent, clerkId);
       if (res.enroll || res.success) {
         setMessage("✅ Estudiante asignado correctamente");
+        setSelectedCourse("");
+        setSelectedStudent("");
       } else {
         setMessage("❌ Error al asignar estudiante");
       }
@@ -136,7 +148,9 @@ export default function CourseEditor() {
           >
             <option value="">Selecciona un curso</option>
             {courses.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}</option>
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
             ))}
           </select>
 
@@ -147,8 +161,8 @@ export default function CourseEditor() {
           >
             <option value="">Selecciona un estudiante</option>
             {students.map((s) => (
-              <option key={s.clerkId || s.id} value={s.clerkId || s.id}>
-                {s.name || s.email}
+              <option key={s.clerkId} value={s.clerkId}>
+                {s.firstName || s.email} {s.lastName || ""}
               </option>
             ))}
           </select>
@@ -159,7 +173,9 @@ export default function CourseEditor() {
         </form>
       </div>
 
-      {message && <p className="mt-4 text-center text-green-700 font-medium">{message}</p>}
+      {message && (
+        <p className="mt-4 text-center text-green-700 font-medium">{message}</p>
+      )}
     </div>
   );
 }
