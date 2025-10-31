@@ -36,9 +36,7 @@ export default function CourseEditor() {
     }
   };
 
-  useEffect(() => {
-    loadCourses();
-  }, [clerkId]);
+  useEffect(() => { loadCourses(); }, [clerkId]);
 
   // 🔄 Cargar estudiantes
   const loadStudents = async () => {
@@ -52,64 +50,45 @@ export default function CourseEditor() {
     }
   };
 
-  useEffect(() => {
-    loadStudents();
-  }, [clerkId]);
+  useEffect(() => { loadStudents(); }, [clerkId]);
 
   // ➕ Crear/Actualizar curso
-  async function handleCreateOrUpdate(e) {
+  const handleCreateOrUpdate = async (e) => {
     e.preventDefault();
-    if (!title || !desc) {
-      setMessage("Completa todos los campos");
-      return;
-    }
+    if (!title || !desc) { setMessage("Completa todos los campos"); return; }
 
     setMessage(editingCourseId ? "Actualizando curso..." : "Creando curso...");
     try {
       const payload = { title, description: desc, resources: [{ type: "link", url: resourceUrl }] };
-      if (editingCourseId) {
-        await postCourse({ ...payload, id: editingCourseId }, clerkId);
-        setMessage("✅ Curso actualizado");
-        setEditingCourseId(null);
-      } else {
-        const res = await postCourse(payload, clerkId);
-        if (res.id) setMessage("✅ Curso creado");
-      }
-
+      const res = await postCourse(editingCourseId ? { ...payload, id: editingCourseId } : payload, clerkId);
+      setMessage(editingCourseId ? "✅ Curso actualizado" : "✅ Curso creado");
+      setEditingCourseId(null);
       setTitle(""); setDesc(""); setResourceUrl("");
       await loadCourses();
     } catch (err) {
       console.error(err);
       setMessage("❌ Error en el servidor");
     }
-  }
+  };
 
   // 🎯 Asignar estudiantes
-  async function handleAssign(e) {
+  const handleAssign = async (e) => {
     e.preventDefault();
-    if (!selectedCourse || selectedStudents.length === 0) {
-      setMessage("Selecciona un curso y al menos un estudiante");
-      return;
-    }
+    if (!selectedCourse || selectedStudents.length === 0) { setMessage("Selecciona un curso y al menos un estudiante"); return; }
 
     setMessage("Asignando estudiantes...");
     try {
       const res = await assignStudent(selectedCourse, selectedStudents, clerkId);
-      if (res.success) {
-        setMessage("✅ Estudiantes asignados correctamente");
-        setSelectedCourse("");
-        setSelectedStudents([]);
-      } else {
-        setMessage("❌ Algunos estudiantes ya estaban asignados");
-      }
+      setMessage(res.success ? "✅ Estudiantes asignados correctamente" : "❌ Algunos estudiantes ya estaban asignados");
+      setSelectedCourse(""); setSelectedStudents([]);
     } catch (err) {
       console.error(err);
       setMessage("❌ Error asignando estudiantes");
     }
-  }
+  };
 
   // 🗑️ Borrar curso
-  async function handleDeleteCourse(courseId) {
+  const handleDeleteCourse = async (courseId) => {
     if (!window.confirm("¿Seguro quieres borrar este curso?")) return;
     try {
       await deleteCourse(courseId, clerkId);
@@ -119,16 +98,16 @@ export default function CourseEditor() {
       console.error(err);
       setMessage("❌ Error al borrar el curso");
     }
-  }
+  };
 
   // ✏️ Editar curso
-  function handleEditCourse(course) {
+  const handleEditCourse = (course) => {
     setEditingCourseId(course.id);
     setTitle(course.title);
     setDesc(course.description || "");
     setResourceUrl(course.resources?.[0]?.url || "");
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  };
 
   return (
     <div className="p-6 max-w-3xl mx-auto">

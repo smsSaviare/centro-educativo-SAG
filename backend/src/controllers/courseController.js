@@ -22,7 +22,8 @@ exports.createCourse = async (req, res) => {
       creatorClerkId,
     });
 
-    res.status(201).json(course);
+    // Devolver objeto plano para frontend
+    res.status(201).json(course.toJSON());
   } catch (error) {
     console.error("❌ Error creando curso:", error);
     res.status(500).json({ error: "Error creando curso" });
@@ -43,12 +44,12 @@ exports.getMyCourses = async (req, res) => {
     let courses = [];
 
     if (user.role === "teacher") {
-      courses = await Course.findAll({ where: { creatorClerkId: clerkId } });
+      courses = (await Course.findAll({ where: { creatorClerkId: clerkId } })).map(c => c.toJSON());
     } else {
       const enrollments = await Enrollment.findAll({ where: { clerkId } });
-      const courseIds = enrollments.map((e) => e.courseId);
+      const courseIds = enrollments.map(e => e.courseId);
       if (courseIds.length > 0) {
-        courses = await Course.findAll({ where: { id: courseIds } });
+        courses = (await Course.findAll({ where: { id: courseIds } })).map(c => c.toJSON());
       }
     }
 
