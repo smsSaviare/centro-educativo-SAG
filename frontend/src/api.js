@@ -90,5 +90,14 @@ export async function syncUserBackend(payload, token) {
   return apiRequest("/sync-user", { method: "POST", body: payload, token });
 }
 
+// Borrar un curso por id
+export async function deleteCourse(courseId, clerkId) {
+  return apiRequest(`/courses/${courseId}`, {
+    method: "DELETE",
+    clerkId,
+  });
+}
+
+
 // Exporta para depuración
 export { API_BASE };

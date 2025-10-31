@@ -1,7 +1,12 @@
 // frontend/src/components/CourseEditor.jsx
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
-import { postCourse, assignStudent, getMyCourses } from "../api";
+import {
+  postCourse,
+  assignStudent,
+  getMyCourses,
+  deleteCourse,
+} from "../api";
 
 export default function CourseEditor() {
   const { user } = useUser();
@@ -18,37 +23,41 @@ export default function CourseEditor() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedStudent, setSelectedStudent] = useState("");
 
-  // 🧩 Cargar cursos creados por el profesor
-  useEffect(() => {
+  // 🧩 Cargar cursos creados por el docente
+  const loadCourses = async () => {
     if (!clerkId) return;
-    (async () => {
-      try {
-        const data = await getMyCourses(clerkId);
-        setCourses(data || []);
-      } catch (err) {
-        console.error("Error cargando cursos:", err);
-        setMessage("❌ Error cargando cursos");
-      }
-    })();
+    try {
+      const data = await getMyCourses(clerkId);
+      setCourses(data || []);
+    } catch (err) {
+      console.error("Error cargando cursos:", err);
+      setMessage("❌ Error cargando cursos");
+    }
+  };
+
+  useEffect(() => {
+    loadCourses();
   }, [clerkId]);
 
-  // 👥 Cargar lista de estudiantes desde backend
-  useEffect(() => {
+  // 👥 Cargar lista de estudiantes
+  const loadStudents = async () => {
     if (!clerkId) return;
-    (async () => {
-      try {
-        const res = await fetch(
-          "https://sag-backend-b2j6.onrender.com/courses/students",
-          { headers: { "x-clerk-id": clerkId } }
-        );
-        if (!res.ok) throw new Error("Error obteniendo estudiantes");
-        const allUsers = await res.json();
-        setStudents(allUsers);
-      } catch (err) {
-        console.error("Error obteniendo estudiantes:", err);
-        setMessage("❌ Error obteniendo estudiantes");
-      }
-    })();
+    try {
+      const res = await fetch(
+        "https://sag-backend-b2j6.onrender.com/courses/students",
+        { headers: { "x-clerk-id": clerkId } }
+      );
+      if (!res.ok) throw new Error("Error obteniendo estudiantes");
+      const allUsers = await res.json();
+      setStudents(allUsers);
+    } catch (err) {
+      console.error("Error obteniendo estudiantes:", err);
+      setMessage("❌ Error obteniendo estudiantes");
+    }
+  };
+
+  useEffect(() => {
+    loadStudents();
   }, [clerkId]);
 
   // ➕ Crear curso
@@ -60,18 +69,15 @@ export default function CourseEditor() {
     }
     setMessage("Creando curso...");
     try {
-      const payload = {
-        title,
-        description: desc,
-        resources: resourceUrl ? [{ type: "link", url: resourceUrl }] : [],
-      };
+      const payload = { title, description: desc, resources: [{ type: "link", url: resourceUrl }] };
       const res = await postCourse(payload, clerkId);
+
       if (res.id) {
         setMessage("✅ Curso creado correctamente");
-        setCourses([...courses, res]);
         setTitle("");
         setDesc("");
         setResourceUrl("");
+        await loadCourses(); // 🔄 Recargar cursos
       } else {
         setMessage("❌ Error al crear el curso");
       }
@@ -105,6 +111,20 @@ export default function CourseEditor() {
     }
   }
 
+  // 🗑️ Borrar curso
+  async function handleDeleteCourse(courseId) {
+    if (!window.confirm("¿Seguro quieres borrar este curso?")) return;
+
+    try {
+      await deleteCourse(courseId, clerkId);
+      setMessage("✅ Curso eliminado");
+      await loadCourses(); // 🔄 Recargar cursos
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Error al borrar el curso");
+    }
+  }
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <h2 className="text-2xl font-bold text-green-700 mb-4">Panel del Docente</h2>
@@ -135,6 +155,25 @@ export default function CourseEditor() {
             Crear curso
           </button>
         </form>
+      </div>
+
+      {/* === CURSOS DEL DOCENTE === */}
+      <div className="bg-white p-4 rounded shadow mb-8">
+        <h3 className="text-xl font-semibold mb-3">Mis cursos</h3>
+        {courses.length === 0 && <p>No has creado cursos todavía.</p>}
+        <ul className="space-y-2">
+          {courses.map((c) => (
+            <li key={c.id} className="flex justify-between items-center border p-2 rounded">
+              <span>{c.title}</span>
+              <button
+                className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                onClick={() => handleDeleteCourse(c.id)}
+              >
+                Borrar
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* === ASIGNAR ESTUDIANTE === */}
