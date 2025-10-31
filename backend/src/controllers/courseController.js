@@ -37,17 +37,14 @@ exports.getMyCourses = async (req, res) => {
     const clerkId = req.headers["x-clerk-id"];
     if (!clerkId) return res.status(400).json({ error: "Falta clerkId" });
 
-    // Buscar usuario por clerkId
     const user = await User.findOne({ where: { clerkId } });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
     let courses = [];
 
     if (user.role === "teacher") {
-      // Cursos creados por el profesor
       courses = await Course.findAll({ where: { creatorClerkId: clerkId } });
     } else {
-      // Cursos donde el estudiante está inscrito
       const enrollments = await Enrollment.findAll({ where: { clerkId } });
       const courseIds = enrollments.map((e) => e.courseId);
       if (courseIds.length > 0) {
@@ -79,32 +76,31 @@ exports.getStudents = async (req, res) => {
 };
 
 /**
- * ➕ Asignar estudiante a curso
+ * ➕ Asignar estudiantes a curso (puede ser un array)
  */
 exports.assignStudent = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { studentClerkId } = req.body;
+    let { studentClerkId } = req.body;
 
     if (!courseId || !studentClerkId)
       return res.status(400).json({ error: "Faltan datos" });
 
-    const existing = await Enrollment.findOne({
-      where: { courseId, clerkId: studentClerkId },
-    });
+    // Asegurar que sea un array
+    if (!Array.isArray(studentClerkId)) studentClerkId = [studentClerkId];
 
-    if (existing) {
-      return res.status(400).json({ error: "Estudiante ya inscrito" });
+    const enrollments = [];
+    for (const clerkId of studentClerkId) {
+      const existing = await Enrollment.findOne({ where: { courseId, clerkId } });
+      if (!existing) {
+        const enrollment = await Enrollment.create({ courseId, clerkId });
+        enrollments.push(enrollment);
+      }
     }
 
-    const enrollment = await Enrollment.create({
-      courseId,
-      clerkId: studentClerkId,
-    });
-
-    res.json({ enroll: enrollment });
+    res.json({ enrollments, success: enrollments.length > 0 });
   } catch (error) {
-    console.error("❌ Error asignando estudiante:", error);
-    res.status(500).json({ error: "Error asignando estudiante" });
+    console.error("❌ Error asignando estudiante(s):", error);
+    res.status(500).json({ error: "Error asignando estudiante(s)" });
   }
 };
