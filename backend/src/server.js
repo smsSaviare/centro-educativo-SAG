@@ -33,7 +33,7 @@ app.use(
 );
 
 // 🧩 FIX para Express 5 — manejar preflight requests correctamente
-app.options("*", cors());
+app.options(/.*/, cors());
 
 app.use(express.json());
 
