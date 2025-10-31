@@ -6,6 +6,7 @@ const sequelize = require("./config/database");
 const User = require("./models/UserModel");
 const clerkWebhookRouter = require("./routes/clerkWebhook");
 const userRoutes = require("./routes/userRoutes");
+const courseRoutes = require("./routes/courses");
 const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/clerk-sdk-node");
 
 // 🔹 Inicializar Express
@@ -19,15 +20,8 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Requests sin origin (Postman, tests) permitidos
-      if (!origin) return callback(null, true);
-      if (!allowedOrigins.includes(origin)) {
-        return callback(new Error(`CORS no permitido para ${origin}`), false);
-      }
-      return callback(null, true);
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: ["https://smssaviare.github.io", "http://localhost:5173"],
+    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -36,10 +30,11 @@ app.use(
       "x-clerk-webhook-id",
       "x-clerk-webhook-signature",
     ],
-    credentials: true, // necesario para Clerk y cookies de sesión
-    optionsSuccessStatus: 200, // responde 200 a preflight
+    credentials: true,
+    optionsSuccessStatus: 200, // <--- importante para preflight
   })
 );
+
 
 // 🔹 Middleware para parsear JSON
 app.use(express.json());
@@ -53,6 +48,7 @@ app.use((req, res, next) => {
 // 🔹 Rutas
 app.use("/api/users", userRoutes);
 app.use("/api/webhooks", clerkWebhookRouter);
+app.use("/courses", courseRoutes); // <-- aquí se monta el router
 
 // 🔹 Endpoint para sincronizar usuario actual de Clerk
 app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
