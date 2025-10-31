@@ -6,7 +6,7 @@ const sequelize = require("./config/database");
 const User = require("./models/UserModel");
 const clerkWebhookRouter = require("./routes/clerkWebhook");
 const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/clerk-sdk-node");
-const userRoutes = require("./src/routes/userRoutes");
+const userRoutes = require("./routes/userRoutes");
 app.use("/api/users", userRoutes);
 
 const app = express();
