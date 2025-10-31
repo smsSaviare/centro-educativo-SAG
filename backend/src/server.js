@@ -20,7 +20,15 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: ["https://smssaviare.github.io", "http://localhost:5173"],
+    origin: function(origin, callback){
+      // permitir requests sin origin (como herramientas o postman)
+      if(!origin) return callback(null, true);
+      if(allowedOrigins.indexOf(origin) === -1){
+        const msg = `La política CORS bloquea el origen ${origin}`;
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
     methods: ["GET","POST","PUT","DELETE","OPTIONS"],
     allowedHeaders: [
       "Content-Type",
@@ -31,7 +39,7 @@ app.use(
       "x-clerk-webhook-signature",
     ],
     credentials: true,
-    optionsSuccessStatus: 200, // <--- importante para preflight
+    optionsSuccessStatus: 200,
   })
 );
 

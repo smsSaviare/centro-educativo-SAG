@@ -1,3 +1,4 @@
+// backend/src/app.js
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -5,7 +6,7 @@ const { ClerkExpressRequireAuth } = require("@clerk/backend");
 const app = express();
 
 // Middleware base
-app.use(cors());
+//app.use(cors());
 app.use(express.json());
 app.use("/api/webhooks", require("./routes/clerkWebhook"));
 app.use("/api/courses", require("./routes/courses"));
