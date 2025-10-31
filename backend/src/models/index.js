@@ -7,7 +7,8 @@ const User = require("./UserModel");
 Course.hasMany(Enrollment, { foreignKey: "courseId" });
 Enrollment.belongsTo(Course, { foreignKey: "courseId" });
 
-User.hasMany(Enrollment, { foreignKey: "clerkId", sourceKey: "clerk_id" });
-Enrollment.belongsTo(User, { foreignKey: "clerkId", targetKey: "clerk_id" });
+// 🔹 Aseguramos coherencia: usamos 'clerk_id' en ambas
+User.hasMany(Enrollment, { foreignKey: "clerk_id", sourceKey: "clerk_id" });
+Enrollment.belongsTo(User, { foreignKey: "clerk_id", targetKey: "clerk_id" });
 
 module.exports = { Course, Enrollment, User };
