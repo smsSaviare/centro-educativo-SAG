@@ -2,77 +2,69 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const bcrypt = require("bcryptjs");
 const sequelize = require("./config/database");
 const User = require("./models/UserModel");
 const clerkWebhookRouter = require("./routes/clerkWebhook");
-const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
+const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/clerk-sdk-node");
+const userRoutes = require("./src/routes/userRoutes");
+app.use("/api/users", userRoutes);
 
 const app = express();
 
-// ==========================
-// 🌐 CONFIGURACIÓN DE CORS
-// ==========================
+// ✅ CORS configurado para GitHub Pages y entorno local
 const allowedOrigins = [
-  "https://smssaviare.github.io", // Frontend en GitHub Pages
-  "http://localhost:5173",        // Entorno local
+  "https://smssaviare.github.io", // frontend en producción
+  "http://localhost:5173",        // entorno local
 ];
 
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "x-clerk-id",
-      "x-requested-with",
-    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-// 🧩 FIX para Express 5 — manejar preflight requests correctamente
-app.options(/.*/, cors());
-
 app.use(express.json());
 
-// ===================================
-// 🔔 RUTA DE WEBHOOK DE CLERK
-// ===================================
-app.use("/api", clerkWebhookRouter);
+// ✅ Webhook de Clerk (sincroniza nuevos usuarios automáticamente)
+app.use("/api/webhooks", clerkWebhookRouter);
 
-// ===================================
-// 🔄 SINCRONIZAR USUARIO DE CLERK CON DB
-// ===================================
+// ✅ Sincroniza manualmente el usuario logueado con la base de datos
 app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   try {
-    const { id, email_addresses, first_name, last_name } = req.auth.user;
-    const email = email_addresses?.[0]?.email_address || "sin_email@correo.com";
+    const { userId } = req.auth;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: "Usuario no autenticado" });
+    }
 
-    const [user, created] = await User.findOrCreate({
-      where: { clerkId: id },
+    // Recuperar información del usuario desde Clerk
+    const user = await clerkClient.users.getUser(userId);
+    const email = user.emailAddresses?.[0]?.emailAddress || "sin_email@correo.com";
+    const firstName = user.firstName || "";
+    const lastName = user.lastName || "";
+
+    // Crear o actualizar el usuario en la base de datos
+    const [dbUser, created] = await User.findOrCreate({
+      where: { clerkId: userId },
       defaults: {
-        clerkId: id,
+        clerkId: userId,
         email,
-        firstName: first_name || "",
-        lastName: last_name || "",
+        firstName,
+        lastName,
         role: "student",
       },
     });
 
     if (!created) {
-      await user.update({
-        email,
-        firstName: first_name || "",
-        lastName: last_name || "",
-      });
+      await dbUser.update({ email, firstName, lastName });
     }
 
     res.json({
       success: true,
-      message: created ? "Usuario creado" : "Usuario actualizado",
-      user,
+      message: created ? "Usuario creado correctamente" : "Usuario actualizado",
+      user: dbUser,
     });
   } catch (error) {
     console.error("❌ Error sincronizando usuario:", error);
@@ -80,17 +72,18 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   }
 });
 
-// ===================================
-// 🧱 INICIO DEL SERVIDOR Y BASE DE DATOS
-// ===================================
+// ✅ Ruta de prueba
+app.get("/", (req, res) => {
+  res.json({ mensaje: "🚀 API Saviare funcionando correctamente con Clerk" });
+});
+
+// ✅ Sincronizar DB y crear administrador por defecto
 async function startServer() {
   try {
-    await sequelize.sync({ alter: true }); // ⚠️ Usa { force: false } o { alter: true } en producción
-    console.log("✅ Tablas sincronizadas con la base de datos");
+    await sequelize.sync({ alter: true });
+    console.log("✅ Base de datos sincronizada");
 
-    // Crear usuario administrador por defecto si no existe
     const adminEmail = "admin@saviare.com";
-
     const [admin, created] = await User.findOrCreate({
       where: { email: adminEmail },
       defaults: {
@@ -109,9 +102,7 @@ async function startServer() {
     }
 
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () =>
-      console.log(`🚀 Servidor online en puerto ${PORT}`)
-    );
+    app.listen(PORT, () => console.log(`🚀 Servidor en línea en puerto ${PORT}`));
   } catch (err) {
     console.error("❌ Error al iniciar el servidor:", err);
   }
