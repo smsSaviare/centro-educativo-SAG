@@ -25,8 +25,8 @@ app.use(
   })
 );
 
-// Permitir preflight requests (importante para POST/PUT)
-app.options("/*", cors());
+// 🔧 FIX: evitar error de path-to-regexp
+app.options(/.*/, cors());
 
 app.use(express.json());
 
