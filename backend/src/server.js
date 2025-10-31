@@ -19,7 +19,15 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Permitir requests sin origin (como desde Postman)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg = `La política CORS no permite el acceso desde ${origin}`;
+        return callback(new Error(msg), false);
+      }
+      return callback(null, true);
+    },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
@@ -32,6 +40,9 @@ app.use(
     credentials: true,
   })
 );
+
+// 🔹 Permitir preflight requests para todas las rutas
+app.options("*", cors());
 
 // 🔹 Middleware para parsear JSON
 app.use(express.json());
