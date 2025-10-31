@@ -21,7 +21,14 @@ app.use(
   cors({
     origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-clerk-id",
+      "x-clerk-signature",
+      "x-clerk-webhook-id",
+      "x-clerk-webhook-signature",
+    ],
     credentials: true,
   })
 );
