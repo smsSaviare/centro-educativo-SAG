@@ -10,30 +10,41 @@ const { ClerkExpressRequireAuth } = require("@clerk/clerk-sdk-node");
 
 const app = express();
 
-// ✅ Configurar CORS
+// ==========================
+// 🌐 CONFIGURACIÓN DE CORS
+// ==========================
 const allowedOrigins = [
-  "https://smssaviare.github.io", // tu frontend en GitHub Pages
-  "http://localhost:5173", // entorno local
+  "https://smssaviare.github.io", // Frontend en GitHub Pages
+  "http://localhost:5173",        // Entorno local
 ];
 
 app.use(
   cors({
     origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-clerk-id",
+      "x-requested-with",
+    ],
     credentials: true,
   })
 );
 
-// 🔧 FIX: evitar error de path-to-regexp
-app.options(/.*/, cors());
+// 🧩 FIX para Express 5 — manejar preflight requests correctamente
+app.options("*", cors());
 
 app.use(express.json());
 
-// ✅ Webhook de Clerk (crea usuarios en la DB)
+// ===================================
+// 🔔 RUTA DE WEBHOOK DE CLERK
+// ===================================
 app.use("/api", clerkWebhookRouter);
 
-// ✅ Endpoint para sincronizar el usuario actual de Clerk con la DB
+// ===================================
+// 🔄 SINCRONIZAR USUARIO DE CLERK CON DB
+// ===================================
 app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   try {
     const { id, email_addresses, first_name, last_name } = req.auth.user;
@@ -69,12 +80,15 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Sincronizar base de datos y crear admin
+// ===================================
+// 🧱 INICIO DEL SERVIDOR Y BASE DE DATOS
+// ===================================
 async function startServer() {
   try {
-    await sequelize.sync({ force: true });
-    console.log("✅ Tablas recreadas en la base de datos");
+    await sequelize.sync({ alter: true }); // ⚠️ Usa { force: false } o { alter: true } en producción
+    console.log("✅ Tablas sincronizadas con la base de datos");
 
+    // Crear usuario administrador por defecto si no existe
     const adminEmail = "admin@saviare.com";
 
     const [admin, created] = await User.findOrCreate({
@@ -95,7 +109,9 @@ async function startServer() {
     }
 
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => console.log(`🚀 Servidor online en puerto ${PORT}`));
+    app.listen(PORT, () =>
+      console.log(`🚀 Servidor online en puerto ${PORT}`)
+    );
   } catch (err) {
     console.error("❌ Error al iniciar el servidor:", err);
   }

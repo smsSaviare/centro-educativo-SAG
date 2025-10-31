@@ -7,7 +7,6 @@ const app = express();
 // Middleware base
 app.use(cors());
 app.use(express.json());
-app.use(express.json());
 app.use("/api/webhooks", require("./routes/clerkWebhook"));
 app.use("/api/courses", require("./routes/courses"));
 
