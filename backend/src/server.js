@@ -5,10 +5,10 @@ const cors = require("cors");
 const sequelize = require("./config/database");
 const User = require("./models/UserModel");
 const clerkWebhookRouter = require("./routes/clerkWebhook");
-const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/clerk-sdk-node");
 const userRoutes = require("./routes/userRoutes");
-app.use("/api/users", userRoutes);
+const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/clerk-sdk-node");
 
+// 🔹 Inicializar Express
 const app = express();
 
 // ✅ CORS configurado para GitHub Pages y entorno local
@@ -20,18 +20,20 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
+// 🔹 Middleware para parsear JSON
 app.use(express.json());
 
-// ✅ Webhook de Clerk (sincroniza nuevos usuarios automáticamente)
+// 🔹 Rutas
+app.use("/api/users", userRoutes);
 app.use("/api/webhooks", clerkWebhookRouter);
 
-// ✅ Sincroniza manualmente el usuario logueado con la base de datos
+// 🔹 Endpoint para sincronizar el usuario actual de Clerk con la DB
 app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   try {
     const { userId } = req.auth;
@@ -48,13 +50,7 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
     // Crear o actualizar el usuario en la base de datos
     const [dbUser, created] = await User.findOrCreate({
       where: { clerkId: userId },
-      defaults: {
-        clerkId: userId,
-        email,
-        firstName,
-        lastName,
-        role: "student",
-      },
+      defaults: { clerkId: userId, email, firstName, lastName, role: "student" },
     });
 
     if (!created) {
@@ -72,12 +68,12 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   }
 });
 
-// ✅ Ruta de prueba
+// 🔹 Ruta de prueba
 app.get("/", (req, res) => {
   res.json({ mensaje: "🚀 API Saviare funcionando correctamente con Clerk" });
 });
 
-// ✅ Sincronizar DB y crear administrador por defecto
+// 🔹 Sincronizar DB y crear administrador por defecto
 async function startServer() {
   try {
     await sequelize.sync({ alter: true });
