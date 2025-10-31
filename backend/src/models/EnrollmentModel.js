@@ -1,4 +1,4 @@
-// backend/src/models/Enrollment.js
+// backend/src/models/EnrollmentModel.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 const Course = require("./CourseModel");

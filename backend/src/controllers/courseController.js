@@ -37,17 +37,22 @@ exports.getMyCourses = async (req, res) => {
     const clerkId = req.headers["x-clerk-id"];
     if (!clerkId) return res.status(400).json({ error: "Falta clerkId" });
 
-    // Verificamos si es profesor
-    const user = await User.findOne({ where: { clerk_id: clerkId } });
+    // Buscar usuario por clerkId
+    const user = await User.findOne({ where: { clerkId } });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    let courses;
+    let courses = [];
+
     if (user.role === "teacher") {
+      // Cursos creados por el profesor
       courses = await Course.findAll({ where: { creatorClerkId: clerkId } });
     } else {
+      // Cursos donde el estudiante está inscrito
       const enrollments = await Enrollment.findAll({ where: { clerkId } });
       const courseIds = enrollments.map((e) => e.courseId);
-      courses = await Course.findAll({ where: { id: courseIds } });
+      if (courseIds.length > 0) {
+        courses = await Course.findAll({ where: { id: courseIds } });
+      }
     }
 
     res.json(courses);
@@ -64,7 +69,7 @@ exports.getStudents = async (req, res) => {
   try {
     const students = await User.findAll({
       where: { role: "student" },
-      attributes: ["clerk_id", "email", "first_name", "last_name"],
+      attributes: ["clerkId", "email", "firstName", "lastName"],
     });
     res.json(students);
   } catch (error) {
