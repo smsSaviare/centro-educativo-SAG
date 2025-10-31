@@ -12,6 +12,7 @@ import {
 export default function CourseEditor() {
   const { user } = useUser();
   const clerkId = user?.id;
+  console.log(clerkId);
 
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
