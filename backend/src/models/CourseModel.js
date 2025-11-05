@@ -9,20 +9,27 @@ const Course = sequelize.define(
     title: { type: DataTypes.STRING, allowNull: false },
     description: { type: DataTypes.TEXT },
     image: { type: DataTypes.STRING },
-    resources: { type: DataTypes.JSON }, // [{type:'link', url:'...'}]
+    resources: { type: DataTypes.JSON },
     creatorClerkId: { type: DataTypes.STRING, allowNull: false },
-    blocks: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      defaultValue: [],
-    },
   },
-  {
-    tableName: "Courses",
-  }
+  { tableName: "Courses" }
 );
 
-// Asociación (un profesor crea muchos cursos)
+const CourseBlock = sequelize.define(
+  "CourseBlock",
+  {
+    id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+    courseId: { type: DataTypes.INTEGER, allowNull: false },
+    type: { type: DataTypes.STRING, allowNull: false }, // text, image, video, quiz
+    content: { type: DataTypes.JSON, allowNull: false },
+  },
+  { tableName: "CourseBlocks" }
+);
+
+// Relaciones
+Course.hasMany(CourseBlock, { foreignKey: "courseId", onDelete: "CASCADE" });
+CourseBlock.belongsTo(Course, { foreignKey: "courseId" });
+
 User.hasMany(Course, {
   foreignKey: "creatorClerkId",
   sourceKey: "clerkId",
@@ -32,4 +39,4 @@ Course.belongsTo(User, {
   targetKey: "clerkId",
 });
 
-module.exports = Course;
+module.exports = { Course, CourseBlock };

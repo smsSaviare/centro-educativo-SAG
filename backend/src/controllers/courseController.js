@@ -1,5 +1,5 @@
 // backend/src/controllers/courseController.js
-const Course = require("../models/CourseModel");
+const { Course, CourseBlock } = require("../models/CourseModel");
 const Enrollment = require("../models/EnrollmentModel");
 const User = require("../models/UserModel");
 
@@ -154,19 +154,47 @@ const User = require("../models/UserModel");
  /**
  * 📘 Bloques de contenido
  */
+// Obtener bloques del curso
 exports.getCourseBlocks = async (req, res) => {
-  const { courseId } = req.params;
-  const course = await Course.findByPk(courseId);
-  if (!course) return res.status(404).json({ error: "Curso no encontrado" });
-  res.json(course.blocks || []);
+  try {
+    const { courseId } = req.params;
+    const blocks = await CourseBlock.findAll({
+      where: { courseId },
+      order: [["id", "ASC"]],
+    });
+    return res.json(blocks);
+  } catch (err) {
+    console.error("❌ Error al obtener bloques:", err);
+    return res.status(500).json({ error: "Error obteniendo contenido del curso" });
+  }
 };
 
+// Guardar o actualizar bloques del curso
 exports.saveCourseBlocks = async (req, res) => {
-  const { courseId } = req.params;
-  const { blocks } = req.body;
-  const course = await Course.findByPk(courseId);
-  if (!course) return res.status(404).json({ error: "Curso no encontrado" });
-  course.blocks = blocks;
-  await course.save();
-  res.json({ success: true });
+  try {
+    const { courseId } = req.params;
+    const { blocks } = req.body; // array de {type, content}
+
+    if (!Array.isArray(blocks)) {
+      return res.status(400).json({ error: "Formato inválido de bloques" });
+    }
+
+    // 🔄 borrar los antiguos bloques y guardar los nuevos
+    await CourseBlock.destroy({ where: { courseId } });
+
+    const saved = await Promise.all(
+      blocks.map((b) =>
+        CourseBlock.create({
+          courseId,
+          type: b.type,
+          content: b.content,
+        })
+      )
+    );
+
+    return res.json({ success: true, blocks: saved });
+  } catch (err) {
+    console.error("❌ Error al guardar bloques:", err);
+    return res.status(500).json({ error: "Error guardando contenido del curso" });
+  }
 };
