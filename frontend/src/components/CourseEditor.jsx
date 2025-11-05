@@ -20,9 +20,9 @@ export default function CourseEditor() {
 
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState("");
-  const [selectedStudents, setSelectedStudents] = useState([]);
   const [editingCourseId, setEditingCourseId] = useState(null);
+  const [expandedCourseId, setExpandedCourseId] = useState(null);
+  const [selectedStudents, setSelectedStudents] = useState([]);
 
   // 🔄 Cargar cursos
   const loadCourses = async () => {
@@ -56,7 +56,7 @@ export default function CourseEditor() {
     loadStudents();
   }, [clerkId]);
 
-  // ➕ Crear/Actualizar curso
+  // ➕ Crear o actualizar curso
   const handleCreateOrUpdate = async (e) => {
     e.preventDefault();
     if (!title || !desc) {
@@ -64,14 +64,11 @@ export default function CourseEditor() {
       return;
     }
 
-    setMessage(editingCourseId ? "Actualizando curso..." : "Creando curso...");
     try {
       const payload = {
         title,
         description: desc,
-        resources: resourceUrl
-          ? [{ type: "link", url: resourceUrl }]
-          : [],
+        resources: resourceUrl ? [{ type: "link", url: resourceUrl }] : [],
       };
 
       await postCourse(
@@ -87,37 +84,13 @@ export default function CourseEditor() {
       await loadCourses();
     } catch (err) {
       console.error(err);
-      setMessage("❌ Error en el servidor");
+      setMessage("❌ Error al crear/actualizar el curso");
     }
   };
 
-  // 🎯 Asignar estudiantes
-  const handleAssign = async (e) => {
-    e.preventDefault();
-    if (!selectedCourse || selectedStudents.length === 0) {
-      setMessage("Selecciona un curso y al menos un estudiante");
-      return;
-    }
-
-    setMessage("Asignando estudiantes...");
-    try {
-      const res = await assignStudent(selectedCourse, selectedStudents, clerkId);
-      setMessage(
-        res.success
-          ? "✅ Estudiantes asignados correctamente"
-          : "❌ Algunos estudiantes ya estaban asignados"
-      );
-      setSelectedCourse("");
-      setSelectedStudents([]);
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Error asignando estudiantes");
-    }
-  };
-
-  // 🗑️ Borrar curso
+  // 🗑️ Eliminar curso
   const handleDeleteCourse = async (courseId) => {
-    if (!window.confirm("¿Seguro quieres borrar este curso?")) return;
+    if (!window.confirm("¿Seguro que deseas borrar este curso?")) return;
     try {
       await deleteCourse(courseId, clerkId);
       setMessage("✅ Curso eliminado");
@@ -137,9 +110,31 @@ export default function CourseEditor() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // 🎯 Asignar estudiantes a un curso específico
+  const handleAssignStudents = async (courseId) => {
+    if (selectedStudents.length === 0) {
+      setMessage("Selecciona al menos un estudiante");
+      return;
+    }
+    try {
+      const res = await assignStudent(courseId, selectedStudents, clerkId);
+      setMessage(
+        res.success
+          ? "✅ Estudiantes asignados correctamente"
+          : "⚠️ Algunos estudiantes ya estaban asignados"
+      );
+      setSelectedStudents([]);
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Error al asignar estudiantes");
+    }
+  };
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold text-green-700 mb-4">Panel del Docente</h2>
+      <h2 className="text-2xl font-bold text-green-700 mb-4">
+        Panel del Docente
+      </h2>
 
       {/* CREAR/EDITAR */}
       <div className="bg-white p-4 rounded shadow mb-8">
@@ -150,19 +145,19 @@ export default function CourseEditor() {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Título"
+            placeholder="Título del curso"
             className="border p-2 rounded"
           />
           <textarea
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
-            placeholder="Descripción"
+            placeholder="Descripción del curso"
             className="border p-2 rounded"
           />
           <input
             value={resourceUrl}
             onChange={(e) => setResourceUrl(e.target.value)}
-            placeholder="URL del recurso"
+            placeholder="URL del recurso (opcional)"
             className="border p-2 rounded"
           />
           <button className="bg-green-700 text-white py-2 rounded hover:bg-green-800">
@@ -171,92 +166,83 @@ export default function CourseEditor() {
         </form>
       </div>
 
-      {/* CURSOS */}
+      {/* LISTADO DE CURSOS */}
       <div className="bg-white p-4 rounded shadow mb-8">
-        <h3 className="text-xl font-semibold mb-3">Mis cursos</h3>
+        <h3 className="text-xl font-semibold mb-3">Mis cursos creados</h3>
         {courses.length === 0 ? (
           <p>No has creado cursos todavía.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-4">
             {courses.map((c) => (
               <li
                 key={c.id}
-                className="flex justify-between items-center border p-2 rounded"
+                className="border p-3 rounded shadow-sm bg-gray-50 flex flex-col gap-2"
               >
-                <span>{c.title}</span>
-                {c.teacherClerkId === clerkId && (
-                  <div className="flex gap-2">
-                    <button
-                      className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
-                      onClick={() => handleEditCourse(c)}
+                <div className="flex justify-between items-center">
+                  <h4 className="font-bold text-lg text-gray-700">
+                    {c.title}
+                  </h4>
+                  {c.creatorClerkId === clerkId && (
+                    <div className="flex gap-2">
+                      <button
+                        className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                        onClick={() => handleEditCourse(c)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                        onClick={() => handleDeleteCourse(c.id)}
+                      >
+                        Borrar
+                      </button>
+                      <button
+                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                        onClick={() =>
+                          setExpandedCourseId(
+                            expandedCourseId === c.id ? null : c.id
+                          )
+                        }
+                      >
+                        {expandedCourseId === c.id ? "Ocultar" : "Asignar"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {expandedCourseId === c.id && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="text-sm text-gray-700 mb-2">
+                      Asignar estudiantes al curso:{" "}
+                      <strong>{c.title}</strong>
+                    </p>
+                    <select
+                      multiple
+                      className="border p-2 rounded w-full h-32"
+                      value={selectedStudents}
+                      onChange={(e) =>
+                        setSelectedStudents(
+                          Array.from(e.target.selectedOptions, (o) => o.value)
+                        )
+                      }
                     >
-                      Editar
-                    </button>
+                      {students.map((s) => (
+                        <option key={s.clerkId} value={s.clerkId}>
+                          {s.firstName || s.email} {s.lastName || ""}
+                        </option>
+                      ))}
+                    </select>
                     <button
-                      className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
-                      onClick={() => handleDeleteCourse(c.id)}
+                      className="bg-blue-700 text-white mt-3 px-4 py-2 rounded hover:bg-blue-800"
+                      onClick={() => handleAssignStudents(c.id)}
                     >
-                      Borrar
+                      Confirmar asignación
                     </button>
                   </div>
                 )}
               </li>
             ))}
           </ul>
-        )}
-      </div>
-
-      {/* ASIGNAR ESTUDIANTES */}
-      <div className="bg-white p-4 rounded shadow mb-8">
-        <h3 className="text-xl font-semibold mb-3">
-          Asignar estudiantes a un curso
-        </h3>
-        {courses.length === 0 ? (
-          <p className="text-red-600">
-            Crea primero un curso para asignar estudiantes.
-          </p>
-        ) : (
-          <form
-            onSubmit={handleAssign}
-            className="flex flex-col md:flex-row gap-3"
-          >
-            <select
-              className="border p-2 rounded flex-1"
-              value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-            >
-              <option value="">Selecciona un curso</option>
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-
-            <select
-              multiple
-              className="border p-2 rounded flex-1"
-              value={selectedStudents}
-              onChange={(e) =>
-                setSelectedStudents(
-                  Array.from(e.target.selectedOptions, (o) => o.value)
-                )
-              }
-            >
-              {students.map((s) => (
-                <option key={s.clerkId} value={s.clerkId}>
-                  {s.firstName || s.email} {s.lastName || ""}
-                </option>
-              ))}
-            </select>
-
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Asignar
-            </button>
-          </form>
         )}
       </div>
 
