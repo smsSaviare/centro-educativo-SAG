@@ -1,4 +1,6 @@
 // backend/src/routes/courses.js
+router.get("/:courseId/blocks", getCourseBlocks);
+router.post("/:courseId/blocks", saveCourseBlocks);
 const express = require("express");
 const router = express.Router();
 const {
