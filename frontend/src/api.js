@@ -1,103 +1,102 @@
-// frontend/src/api.js
-// Centralización de llamadas al backend con Clerk + Fetch API
-
 const API_BASE =
-  import.meta.env.VITE_API_BASE || "https://sag-backend-b2j6.onrender.com";
+import.meta.env.VITE_API_BASE || "[https://sag-backend-b2j6.onrender.com](https://sag-backend-b2j6.onrender.com)";
 
 /**
- * Helper genérico para hacer peticiones al backend
- */
-async function apiRequest(
+
+* Helper genérico para hacer peticiones al backend
+  */
+  async function apiRequest(
   endpoint,
   { method = "GET", headers = {}, body, clerkId, token } = {}
-) {
+  ) {
   const url = `${API_BASE}${endpoint}`;
   const opts = { method, headers: { "Content-Type": "application/json", ...headers } };
 
-  if (clerkId) opts.headers["x-clerk-id"] = clerkId;
-  if (token) opts.headers["Authorization"] = `Bearer ${token}`;
-  if (body) opts.body = JSON.stringify(body);
+if (clerkId) opts.headers["x-clerk-id"] = clerkId;
+if (token) opts.headers["Authorization"] = `Bearer ${token}`;
+if (body) opts.body = JSON.stringify(body);
 
-  const res = await fetch(url, opts);
+const res = await fetch(url, opts);
 
-  if (!res.ok) {
-    const msg = await res.text().catch(() => res.statusText);
-    throw new Error(`Error ${res.status}: ${msg}`);
-  }
+if (!res.ok) {
+const msg = await res.text().catch(() => res.statusText);
+throw new Error(`Error ${res.status}: ${msg}`);
+}
 
-  return res.json().catch(() => ({}));
+return res.json().catch(() => ({}));
 }
 
 /* ============================================================
-   📚 Cursos
-   ============================================================ */
+📚 Cursos
+============================================================ */
 
 // Crear curso
 export async function postCourse(payload, clerkId) {
-  return apiRequest("/courses", { method: "POST", body: payload, clerkId });
+return apiRequest("/courses", { method: "POST", body: payload, clerkId });
 }
 
-// Asignar estudiante a un curso
-export async function assignStudent(courseId, studentClerkId, teacherClerkId) {
-  return apiRequest(`/courses/${courseId}/assign`, {
-    method: "POST",
-    body: { studentClerkId },
-    clerkId: teacherClerkId,
-  });
-}
-
-// Obtener cursos del usuario actual
-export async function getMyCourses(clerkId) {
-  return apiRequest("/courses/my-courses", { method: "GET", clerkId });
-}
-
-// Obtener todos los estudiantes (para asignación)
-export async function getStudents(clerkId) {
-  return apiRequest("/courses/students", { method: "GET", clerkId });
-}
-
-/* ============================================================
-   👤 Autenticación y usuarios
-   ============================================================ */
-
-export async function registerUser(data) {
-  return apiRequest("/register", { method: "POST", body: data });
-}
-
-export async function loginUser(data) {
-  return apiRequest("/login", { method: "POST", body: data });
-}
-
-export async function forgotPassword(email) {
-  return apiRequest("/forgot-password", { method: "POST", body: { email } });
-}
-
-export async function resetPassword(token, newPassword) {
-  return apiRequest("/reset-password", { method: "POST", body: { token, newPassword } });
-}
-
-/* ============================================================
-   🧠 Utilidades
-   ============================================================ */
-
-// Obtener todos los cursos (sin filtrar)
-export function getCourses() {
-  return apiRequest("/courses");
-}
-
-// Sincronizar usuario con backend (usado desde App.jsx)
-export async function syncUserBackend(payload, token) {
-  return apiRequest("/sync-user", { method: "POST", body: payload, token });
+// Actualizar curso
+export async function updateCourse(courseId, payload, clerkId) {
+return apiRequest(`/courses/${courseId}`, { method: "PUT", body: payload, clerkId });
 }
 
 // Borrar un curso por id
 export async function deleteCourse(courseId, clerkId) {
-  return apiRequest(`/courses/${courseId}`, {
-    method: "DELETE",
-    clerkId,
-  });
+return apiRequest(`/courses/${courseId}`, { method: "DELETE", clerkId });
 }
 
+// Asignar estudiante(s) a un curso
+export async function assignStudent(courseId, studentClerkId, teacherClerkId) {
+return apiRequest(`/courses/${courseId}/assign`, {
+method: "POST",
+body: { studentClerkId },
+clerkId: teacherClerkId,
+});
+}
+
+// Obtener cursos del usuario actual
+export async function getMyCourses(clerkId) {
+return apiRequest("/courses/my-courses", { method: "GET", clerkId });
+}
+
+// Obtener todos los estudiantes (para asignación)
+export async function getStudents(clerkId) {
+return apiRequest("/courses/students", { method: "GET", clerkId });
+}
+
+/* ============================================================
+👤 Autenticación y usuarios
+============================================================ */
+
+export async function registerUser(data) {
+return apiRequest("/register", { method: "POST", body: data });
+}
+
+export async function loginUser(data) {
+return apiRequest("/login", { method: "POST", body: data });
+}
+
+export async function forgotPassword(email) {
+return apiRequest("/forgot-password", { method: "POST", body: { email } });
+}
+
+export async function resetPassword(token, newPassword) {
+return apiRequest("/reset-password", { method: "POST", body: { token, newPassword } });
+}
+
+/* ============================================================
+🧠 Utilidades
+============================================================ */
+
+// Obtener todos los cursos (sin filtrar)
+export function getCourses() {
+return apiRequest("/courses");
+}
+
+// Sincronizar usuario con backend (usado desde App.jsx)
+export async function syncUserBackend(payload, token) {
+return apiRequest("/sync-user", { method: "POST", body: payload, token });
+}
 
 // Exporta para depuración
 export { API_BASE };
