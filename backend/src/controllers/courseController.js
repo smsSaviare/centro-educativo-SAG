@@ -151,3 +151,22 @@ const User = require("../models/UserModel");
   }
   };
 
+ /**
+ * 📘 Bloques de contenido
+ */
+exports.getCourseBlocks = async (req, res) => {
+  const { courseId } = req.params;
+  const course = await Course.findByPk(courseId);
+  if (!course) return res.status(404).json({ error: "Curso no encontrado" });
+  res.json(course.blocks || []);
+};
+
+exports.saveCourseBlocks = async (req, res) => {
+  const { courseId } = req.params;
+  const { blocks } = req.body;
+  const course = await Course.findByPk(courseId);
+  if (!course) return res.status(404).json({ error: "Curso no encontrado" });
+  course.blocks = blocks;
+  await course.save();
+  res.json({ success: true });
+};
