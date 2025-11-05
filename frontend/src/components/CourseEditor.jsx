@@ -7,7 +7,9 @@ import {
   getMyCourses,
   getStudents,
   deleteCourse,
+  getCourseById,
 } from "../api";
+import CourseBuilder from "./CourseBuilder";
 
 export default function CourseEditor() {
   const { user } = useUser();
@@ -20,7 +22,7 @@ export default function CourseEditor() {
 
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
-  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [editingCourse, setEditingCourse] = useState(null);
   const [expandedCourseId, setExpandedCourseId] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
 
@@ -72,12 +74,12 @@ export default function CourseEditor() {
       };
 
       await postCourse(
-        editingCourseId ? { ...payload, id: editingCourseId } : payload,
+        editingCourse ? { ...payload, id: editingCourse.id } : payload,
         clerkId
       );
 
-      setMessage(editingCourseId ? "✅ Curso actualizado" : "✅ Curso creado");
-      setEditingCourseId(null);
+      setMessage(editingCourse ? "✅ Curso actualizado" : "✅ Curso creado");
+      setEditingCourse(null);
       setTitle("");
       setDesc("");
       setResourceUrl("");
@@ -101,16 +103,21 @@ export default function CourseEditor() {
     }
   };
 
-  // ✏️ Editar curso
-  const handleEditCourse = (course) => {
-    setEditingCourseId(course.id);
-    setTitle(course.title);
-    setDesc(course.description || "");
-    setResourceUrl(course.resources?.[0]?.url || "");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  // ✏️ Editar curso (abre el CourseBuilder)
+  const handleEditCourse = async (course) => {
+    try {
+      const data = await getCourseById(course.id);
+      setEditingCourse(data);
+      setTitle(data.title);
+      setDesc(data.description || "");
+      setResourceUrl(data.resources?.[0]?.url || "");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      console.error("Error cargando curso:", err);
+    }
   };
 
-  // 🎯 Asignar estudiantes a un curso específico
+  // 🎯 Asignar estudiantes
   const handleAssignStudents = async (courseId) => {
     if (selectedStudents.length === 0) {
       setMessage("Selecciona al menos un estudiante");
@@ -131,15 +138,15 @@ export default function CourseEditor() {
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
       <h2 className="text-2xl font-bold text-green-700 mb-4">
         Panel del Docente
       </h2>
 
-      {/* CREAR/EDITAR */}
+      {/* CREAR / EDITAR */}
       <div className="bg-white p-4 rounded shadow mb-8">
         <h3 className="text-xl font-semibold mb-2">
-          {editingCourseId ? "Editar curso" : "Crear nuevo curso"}
+          {editingCourse ? "Editar curso" : "Crear nuevo curso"}
         </h3>
         <form onSubmit={handleCreateOrUpdate} className="flex flex-col gap-3">
           <input
@@ -161,10 +168,20 @@ export default function CourseEditor() {
             className="border p-2 rounded"
           />
           <button className="bg-green-700 text-white py-2 rounded hover:bg-green-800">
-            {editingCourseId ? "Actualizar curso" : "Crear curso"}
+            {editingCourse ? "Actualizar curso" : "Crear curso"}
           </button>
         </form>
       </div>
+
+      {/* CourseBuilder aparece cuando hay un curso en edición */}
+      {editingCourse && (
+        <div className="bg-white p-4 rounded shadow mb-8">
+          <h3 className="text-lg font-semibold mb-3 text-green-700">
+            ✏️ Constructor de contenido para: {editingCourse.title}
+          </h3>
+          <CourseBuilder courseId={editingCourse.id} />
+        </div>
+      )}
 
       {/* LISTADO DE CURSOS */}
       <div className="bg-white p-4 rounded shadow mb-8">
@@ -179,9 +196,7 @@ export default function CourseEditor() {
                 className="border p-3 rounded shadow-sm bg-gray-50 flex flex-col gap-2"
               >
                 <div className="flex justify-between items-center">
-                  <h4 className="font-bold text-lg text-gray-700">
-                    {c.title}
-                  </h4>
+                  <h4 className="font-bold text-lg text-gray-700">{c.title}</h4>
                   {c.creatorClerkId === clerkId && (
                     <div className="flex gap-2">
                       <button
@@ -213,8 +228,7 @@ export default function CourseEditor() {
                 {expandedCourseId === c.id && (
                   <div className="mt-3 border-t pt-3">
                     <p className="text-sm text-gray-700 mb-2">
-                      Asignar estudiantes al curso:{" "}
-                      <strong>{c.title}</strong>
+                      Asignar estudiantes al curso: <strong>{c.title}</strong>
                     </p>
                     <select
                       multiple

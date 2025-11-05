@@ -1,3 +1,4 @@
+// frontend/src/api.js
 const API_BASE =
 import.meta.env.VITE_API_BASE || "[https://sag-backend-b2j6.onrender.com](https://sag-backend-b2j6.onrender.com)";
 
@@ -35,6 +36,11 @@ export async function postCourse(payload, clerkId) {
 return apiRequest("/courses", { method: "POST", body: payload, clerkId });
 }
 
+// Obtener curso por ID
+export async function getCourseById(courseId) {
+  return apiRequest(`/courses/${courseId}`, { method: "GET" });
+}
+
 // Actualizar curso
 export async function updateCourse(courseId, payload, clerkId) {
 return apiRequest(`/courses/${courseId}`, { method: "PUT", body: payload, clerkId });
@@ -52,6 +58,20 @@ method: "POST",
 body: { studentClerkId },
 clerkId: teacherClerkId,
 });
+}
+
+// Obtener bloques de un curso
+export async function getCourseBlocks(courseId, clerkId) {
+  return apiRequest(`/courses/${courseId}/blocks`, { method: "GET", clerkId });
+}
+
+// Guardar bloques de un curso
+export async function saveCourseBlocks(courseId, blocks, clerkId) {
+  return apiRequest(`/courses/${courseId}/blocks`, {
+    method: "POST",
+    body: { blocks },
+    clerkId,
+  });
 }
 
 // Obtener cursos del usuario actual

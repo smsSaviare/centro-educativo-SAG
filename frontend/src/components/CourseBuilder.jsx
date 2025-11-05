@@ -1,153 +1,132 @@
 // frontend/src/components/CourseBuilder.jsx
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import { useUser } from "@clerk/clerk-react";
+import { getCourseBlocks, saveCourseBlocks } from "../api";
 
-export default function CourseBuilder() {
-  const { id } = useParams(); // courseId
+export default function CourseBuilder({ courseId }) {
+  const { user } = useUser();
+  const clerkId = user?.id;
   const [blocks, setBlocks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
 
-  // Cargar bloques del curso
+  // Cargar bloques existentes
   useEffect(() => {
-    const fetchBlocks = async () => {
+    const loadBlocks = async () => {
       try {
-        const res = await axios.get(`/api/courses/${id}/blocks`);
-        setBlocks(res.data || []);
+        const data = await getCourseBlocks(courseId, clerkId);
+        setBlocks(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("❌ Error cargando bloques:", err);
-      } finally {
-        setLoading(false);
+        console.error("Error cargando bloques:", err);
       }
     };
-    fetchBlocks();
-  }, [id]);
+    if (courseId) loadBlocks();
+  }, [courseId]);
 
   // Guardar bloques
-  const saveBlocks = async () => {
-    setSaving(true);
+  const handleSave = async () => {
     try {
-      await axios.post(`/api/courses/${id}/blocks`, { blocks });
-      alert("✅ Contenido guardado correctamente");
+      await saveCourseBlocks(courseId, blocks, clerkId);
+      setMessage("✅ Contenido guardado correctamente");
+      setTimeout(() => setMessage(""), 3000);
     } catch (err) {
-      console.error("❌ Error guardando bloques:", err);
-      alert("Error al guardar contenido");
-    } finally {
-      setSaving(false);
+      console.error(err);
+      setMessage("❌ Error al guardar");
     }
   };
 
-  // Agregar nuevo bloque
+  // Agregar bloque nuevo
   const addBlock = (type) => {
-    const newBlock = { id: Date.now(), type, content: "", extra: {} };
+    const newBlock =
+      type === "quiz"
+        ? { type: "quiz", question: "", options: ["", ""], correct: 0 }
+        : { type, content: "", url: "" };
     setBlocks([...blocks, newBlock]);
   };
 
   // Actualizar bloque
-  const updateBlock = (id, field, value) => {
-    setBlocks((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, [field]: value } : b))
-    );
-  };
-
-  // Eliminar bloque
-  const removeBlock = (id) => {
-    if (window.confirm("¿Eliminar este bloque?")) {
-      setBlocks(blocks.filter((b) => b.id !== id));
-    }
-  };
-
-  // Reordenar bloques
-  const moveBlock = (index, direction) => {
+  const updateBlock = (index, field, value) => {
     const newBlocks = [...blocks];
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= blocks.length) return;
-    [newBlocks[index], newBlocks[targetIndex]] = [
-      newBlocks[targetIndex],
-      newBlocks[index],
-    ];
+    newBlocks[index][field] = value;
     setBlocks(newBlocks);
   };
 
-  if (loading) return <p>Cargando contenido...</p>;
+  // Eliminar bloque
+  const removeBlock = (index) => {
+    if (!window.confirm("¿Eliminar este bloque?")) return;
+    setBlocks(blocks.filter((_, i) => i !== index));
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-center">
-        ✏️ Constructor del curso
-      </h1>
+    <div className="p-6 max-w-4xl mx-auto bg-white rounded shadow">
+      <h2 className="text-2xl font-bold text-green-700 mb-4">
+        🧱 Constructor del curso
+      </h2>
 
-      {/* Botones de agregar */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        <Button onClick={() => addBlock("text")}>📝 Texto</Button>
-        <Button onClick={() => addBlock("image")}>🖼️ Imagen</Button>
-        <Button onClick={() => addBlock("video")}>🎬 Video YouTube</Button>
+      {/* Botones de tipo de bloque */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <button
+          onClick={() => addBlock("text")}
+          className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+        >
+          ➕ Texto
+        </button>
+        <button
+          onClick={() => addBlock("image")}
+          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+        >
+          🖼️ Imagen
+        </button>
+        <button
+          onClick={() => addBlock("video")}
+          className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+        >
+          🎥 Video
+        </button>
+        <button
+          onClick={() => addBlock("quiz")}
+          className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+        >
+          ❓ Quiz
+        </button>
       </div>
 
-      {/* Lista de bloques */}
-      <div className="space-y-4">
+      {/* Render de bloques */}
+      <div className="space-y-6">
         {blocks.map((block, index) => (
-          <motion.div
-            key={block.id}
-            layout
-            className="bg-white shadow-md p-4 rounded-2xl border"
+          <div
+            key={index}
+            className="border rounded p-4 relative bg-gray-50 hover:shadow transition"
           >
-            <div className="flex justify-between items-center mb-2">
-              <strong>
-                {index + 1}. {block.type.toUpperCase()}
-              </strong>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => moveBlock(index, "up")}
-                >
-                  ↑
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => moveBlock(index, "down")}
-                >
-                  ↓
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => removeBlock(block.id)}
-                >
-                  🗑️
-                </Button>
-              </div>
-            </div>
+            <button
+              onClick={() => removeBlock(index)}
+              className="absolute top-2 right-2 text-sm bg-red-500 text-white px-2 rounded hover:bg-red-600"
+            >
+              ✖
+            </button>
 
-            {/* Edición según tipo */}
             {block.type === "text" && (
-              <Textarea
-                placeholder="Escribe tu contenido aquí..."
+              <textarea
+                className="w-full border p-2 rounded"
+                placeholder="Escribe el texto aquí..."
                 value={block.content}
-                onChange={(e) => updateBlock(block.id, "content", e.target.value)}
+                onChange={(e) => updateBlock(index, "content", e.target.value)}
               />
             )}
 
             {block.type === "image" && (
               <div>
-                <Input
-                  placeholder="URL de la imagen..."
-                  value={block.content}
-                  onChange={(e) => updateBlock(block.id, "content", e.target.value)}
+                <input
+                  type="text"
+                  className="w-full border p-2 rounded"
+                  placeholder="URL de la imagen"
+                  value={block.url}
+                  onChange={(e) => updateBlock(index, "url", e.target.value)}
                 />
-                {block.content && (
+                {block.url && (
                   <img
-                    src={block.content}
-                    alt="Vista previa"
-                    className="mt-3 max-h-60 rounded-xl border"
+                    src={block.url}
+                    alt="Imagen del bloque"
+                    className="mt-2 rounded max-h-64 object-contain"
                   />
                 )}
               </div>
@@ -155,32 +134,84 @@ export default function CourseBuilder() {
 
             {block.type === "video" && (
               <div>
-                <Input
-                  placeholder="Enlace de YouTube..."
-                  value={block.content}
-                  onChange={(e) => updateBlock(block.id, "content", e.target.value)}
+                <input
+                  type="text"
+                  className="w-full border p-2 rounded"
+                  placeholder="URL del video de YouTube"
+                  value={block.url}
+                  onChange={(e) => updateBlock(index, "url", e.target.value)}
                 />
-                {block.content && (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${
-                      block.content.split("v=")[1]
-                    }`}
-                    title="Video"
-                    className="mt-3 w-full aspect-video rounded-xl"
-                    allowFullScreen
-                  />
+                {block.url && (
+                  <div className="mt-2">
+                    <iframe
+                      className="w-full h-64 rounded"
+                      src={block.url.replace("watch?v=", "embed/")}
+                      title="Video del curso"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
                 )}
               </div>
             )}
-          </motion.div>
+
+            {block.type === "quiz" && (
+              <div>
+                <input
+                  type="text"
+                  className="w-full border p-2 rounded mb-2"
+                  placeholder="Pregunta del quiz"
+                  value={block.question}
+                  onChange={(e) =>
+                    updateBlock(index, "question", e.target.value)
+                  }
+                />
+                {block.options.map((opt, i) => (
+                  <div key={i} className="flex items-center gap-2 mb-1">
+                    <input
+                      type="radio"
+                      name={`correct-${index}`}
+                      checked={block.correct === i}
+                      onChange={() => updateBlock(index, "correct", i)}
+                    />
+                    <input
+                      type="text"
+                      className="border p-1 rounded flex-1"
+                      placeholder={`Opción ${i + 1}`}
+                      value={opt}
+                      onChange={(e) => {
+                        const newOpts = [...block.options];
+                        newOpts[i] = e.target.value;
+                        updateBlock(index, "options", newOpts);
+                      }}
+                    />
+                  </div>
+                ))}
+                <button
+                  className="mt-1 text-sm text-blue-600 underline"
+                  onClick={() =>
+                    updateBlock(index, "options", [...block.options, ""])
+                  }
+                >
+                  + Añadir opción
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
 
-      <div className="flex justify-center">
-        <Button onClick={saveBlocks} disabled={saving}>
-          {saving ? "💾 Guardando..." : "💾 Guardar cambios"}
-        </Button>
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={handleSave}
+          className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800"
+        >
+          💾 Guardar curso
+        </button>
       </div>
+
+      {message && (
+        <p className="mt-3 text-center text-green-700 font-medium">{message}</p>
+      )}
     </div>
   );
 }
