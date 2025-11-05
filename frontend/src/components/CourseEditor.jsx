@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import {
 postCourse,
-updateCourse,
 assignStudent,
 getMyCourses,
 getStudents,
@@ -10,7 +9,7 @@ deleteCourse,
 } from "../api";
 
 export default function CourseEditor() {
-const { user, isLoaded } = useUser();
+const { user } = useUser();
 const clerkId = user?.id;
 
 const [title, setTitle] = useState("");
@@ -36,6 +35,8 @@ setMessage("❌ Error cargando cursos");
 }
 };
 
+useEffect(() => { loadCourses(); }, [clerkId]);
+
 // 🔄 Cargar estudiantes
 const loadStudents = async () => {
 if (!clerkId) return;
@@ -48,48 +49,45 @@ setMessage("❌ Error obteniendo estudiantes");
 }
 };
 
-useEffect(() => {
-if (isLoaded) {
-loadCourses();
-loadStudents();
-}
-}, [isLoaded, clerkId]);
+useEffect(() => { loadStudents(); }, [clerkId]);
 
 // ➕ Crear/Actualizar curso
 const handleCreateOrUpdate = async (e) => {
 e.preventDefault();
-if (!title || !desc) {
-setMessage("Completa todos los campos");
-return;
-}
+if (!title || !desc) { setMessage("Completa todos los campos"); return; }
 
-```
 setMessage(editingCourseId ? "Actualizando curso..." : "Creando curso...");
 try {
-  const payload = {
-    title,
-    description: desc,
-    resources: resourceUrl ? [{ type: "link", url: resourceUrl }] : [],
-  };
-
-  let res;
-  if (editingCourseId) {
-    res = await updateCourse(editingCourseId, payload, clerkId);
-  } else {
-    res = await postCourse(payload, clerkId);
-  }
+  const payload = { title, description: desc, resources: resourceUrl ? [{ type: "link", url: resourceUrl }] : [] };
+  const res = editingCourseId
+    ? await postCourse({ ...payload, id: editingCourseId }, clerkId)
+    : await postCourse(payload, clerkId);
 
   setMessage(editingCourseId ? "✅ Curso actualizado" : "✅ Curso creado");
   setEditingCourseId(null);
-  setTitle("");
-  setDesc("");
-  setResourceUrl("");
+  setTitle(""); setDesc(""); setResourceUrl("");
   await loadCourses();
 } catch (err) {
   console.error(err);
   setMessage("❌ Error en el servidor");
 }
-```
+
+};
+
+// 🎯 Asignar estudiantes
+const handleAssign = async (e) => {
+e.preventDefault();
+if (!selectedCourse || selectedStudents.length === 0) { setMessage("Selecciona un curso y al menos un estudiante"); return; }
+
+setMessage("Asignando estudiantes...");
+try {
+  const res = await assignStudent(selectedCourse, selectedStudents, clerkId);
+  setMessage(res.success ? "✅ Estudiantes asignados correctamente" : "❌ Algunos estudiantes ya estaban asignados");
+  setSelectedCourse(""); setSelectedStudents([]);
+} catch (err) {
+  console.error(err);
+  setMessage("❌ Error asignando estudiantes");
+}
 
 };
 
@@ -115,34 +113,8 @@ setResourceUrl(course.resources?.[0]?.url || "");
 window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
-// 🎯 Asignar estudiantes
-const handleAssign = async (e) => {
-e.preventDefault();
-if (!selectedCourse || selectedStudents.length === 0) {
-setMessage("Selecciona un curso y al menos un estudiante");
-return;
-}
-
-```
-setMessage("Asignando estudiantes...");
-try {
-  const res = await assignStudent(selectedCourse, selectedStudents, clerkId);
-  setMessage(res.success ? "✅ Estudiantes asignados correctamente" : "❌ Algunos estudiantes ya estaban asignados");
-  setSelectedCourse("");
-  setSelectedStudents([]);
-} catch (err) {
-  console.error(err);
-  setMessage("❌ Error asignando estudiantes");
-}
-```
-
-};
-
-if (!isLoaded) return <p>Cargando usuario...</p>; // Espera a que Clerk cargue
-
 return ( <div className="p-6 max-w-3xl mx-auto"> <h2 className="text-2xl font-bold text-green-700 mb-4">Panel del Docente</h2>
 
-```
   {/* CREAR/EDITAR */}
   <div className="bg-white p-4 rounded shadow mb-8">
     <h3 className="text-xl font-semibold mb-2">{editingCourseId ? "Editar curso" : "Crear nuevo curso"}</h3>
@@ -160,14 +132,8 @@ return ( <div className="p-6 max-w-3xl mx-auto"> <h2 className="text-2xl font-bo
     {courses.length === 0 ? <p>No has creado cursos todavía.</p> :
       <ul className="space-y-2">
         {courses.map(c => (
-          <li key={c.id} className="flex flex-col md:flex-row justify-between items-start md:items-center border p-2 rounded gap-2">
-            <div>
-              <strong>{c.title}</strong>
-              <p>{c.description}</p>
-              {c.resources?.map((r, idx) => (
-                <a key={idx} href={r.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{r.url}</a>
-              ))}
-            </div>
+          <li key={c.id} className="flex justify-between items-center border p-2 rounded">
+            <span>{c.title}</span>
             <div className="flex gap-2">
               <button className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" onClick={() => handleEditCourse(c)}>Editar</button>
               <button className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700" onClick={() => handleDeleteCourse(c.id)}>Borrar</button>
@@ -201,7 +167,5 @@ return ( <div className="p-6 max-w-3xl mx-auto"> <h2 className="text-2xl font-bo
 
   {message && <p className="mt-4 text-center text-green-700 font-medium">{message}</p>}
 </div>
-```
-
 );
 }
