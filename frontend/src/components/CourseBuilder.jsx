@@ -23,16 +23,17 @@ export default function CourseBuilder({ courseId }) {
   }, [courseId]);
 
   // Guardar bloques
-  const handleSave = async () => {
-    try {
-      await saveCourseBlocks(courseId, blocks, clerkId);
-      setMessage("✅ Contenido guardado correctamente");
-      setTimeout(() => setMessage(""), 3000);
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Error al guardar");
-    }
-  };
+const handleSave = async () => {
+  try {
+    await saveCourseBlocks(courseId, clerkId, blocks); // <-- orden correcto
+    setMessage("✅ Contenido guardado correctamente");
+    setTimeout(() => setMessage(""), 3000);
+  } catch (err) {
+    console.error(err);
+    setMessage("❌ Error al guardar");
+  }
+};
+
 
   // Agregar bloque nuevo
   const addBlock = (type) => {
