@@ -46,7 +46,6 @@ router.get("/:clerkId", async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
-
 /**
  * ✏️ Actualizar rol de usuario (solo profesor o admin)
  */

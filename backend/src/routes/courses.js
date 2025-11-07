@@ -1,6 +1,4 @@
 // backend/src/routes/courses.js
-router.get("/:courseId/blocks", getCourseBlocks);
-router.post("/:courseId/blocks", saveCourseBlocks);
 const express = require("express");
 const router = express.Router();
 const {
@@ -14,7 +12,7 @@ const {
   saveCourseBlocks,
 } = require("../controllers/courseController");
 
-const Course = require("../models/CourseModel");
+const { Course } = require("../models/CourseModel");
 
 // Crear curso
 router.post("/", createCourse);
@@ -41,7 +39,7 @@ router.put("/:courseId", updateCourse);
 // Eliminar curso
 router.delete("/:courseId", deleteCourse);
 
-// Bloques de contenido
+// Bloques de contenido (mantén solo estas dos líneas)
 router.get("/:courseId/blocks", getCourseBlocks);
 router.post("/:courseId/blocks", saveCourseBlocks);
 

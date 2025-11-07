@@ -66,13 +66,18 @@ export async function getCourseBlocks(courseId, clerkId) {
 }
 
 // Guardar bloques de un curso
-export async function saveCourseBlocks(courseId, blocks, clerkId) {
-  return apiRequest(`/courses/${courseId}/blocks`, {
-    method: "POST",
-    body: { blocks },
-    clerkId,
+export const saveCourseBlocks = async (courseId, clerkId, blocks) => {
+  const res = await fetch(`${API_URL}/courses/${courseId}/blocks`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "x-clerk-id": clerkId,
+    },
+    body: JSON.stringify({ clerkId, blocks }),
   });
-}
+  return res.json();
+};
+
 
 // Obtener cursos del usuario actual
 export async function getMyCourses(clerkId) {

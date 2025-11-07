@@ -1,33 +1,29 @@
 // frontend/src/components/CourseView.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getCourseById } from "../api"; // asegúrate de tener esta función en api/index.js
+import { getCourseById, getCourseBlocks } from "../api";
 
 export default function CourseView() {
   const { id } = useParams();
   const [course, setCourse] = useState(null);
+  const [blocks, setBlocks] = useState([]);
 
   useEffect(() => {
-    const fetchCourse = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getCourseById(id);
-        setCourse(data);
+        const courseData = await getCourseById(id);
+        setCourse(courseData);
+
+        const { blocks } = await getCourseBlocks(id);
+        setBlocks(blocks || []);
       } catch (err) {
         console.error("Error cargando curso:", err);
       }
     };
-    fetchCourse();
+    fetchData();
   }, [id]);
 
   if (!course) return <p className="text-gray-500 text-center">Cargando curso...</p>;
-
-  // 🔹 Parseamos el JSON guardado
-  let blocks = [];
-  try {
-    blocks = JSON.parse(course.content || "[]");
-  } catch (err) {
-    console.error("Error al parsear el contenido del curso:", err);
-  }
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow">
@@ -45,18 +41,18 @@ export default function CourseView() {
 
             {b.type === "image" && (
               <img
-                src={b.url}
+                src={b.content?.url || b.url}
                 alt="Contenido del curso"
                 className="rounded-2xl shadow-md mx-auto"
               />
             )}
 
-            {b.type === "link" && b.url.includes("youtube") && (
+            {b.type === "link" && b.content?.url?.includes("youtube") && (
               <div className="flex justify-center">
                 <iframe
                   width="560"
                   height="315"
-                  src={b.url.replace("watch?v=", "embed/")}
+                  src={b.content.url.replace("watch?v=", "embed/")}
                   title="Video del curso"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

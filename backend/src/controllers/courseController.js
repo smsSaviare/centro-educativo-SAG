@@ -154,11 +154,10 @@ exports.deleteCourse = async (req, res) => {
 /**
  * 📘 Bloques de contenido del curso
  */
-
-// Obtener bloques
 exports.getCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params;
+
     const blocks = await CourseBlock.findAll({
       where: { courseId },
       order: [["id", "ASC"]],
@@ -167,48 +166,61 @@ exports.getCourseBlocks = async (req, res) => {
     const formatted = blocks.map((b) => ({
       id: b.id,
       type: b.type,
-      content: typeof b.content === "string" ? JSON.parse(b.content) : b.content,
+      content: b.content,
     }));
 
-    return res.json(formatted);
+    return res.json({ blocks: formatted });
   } catch (err) {
     console.error("❌ Error al obtener bloques:", err);
     return res.status(500).json({ error: "Error obteniendo contenido del curso" });
   }
 };
 
+
 // Guardar bloques
+/**
+ * 💾 Guardar bloques de contenido del curso
+ */
+/**
+ * 💾 Guardar bloques de contenido del curso (usando CourseBlock)
+ */
 exports.saveCourseBlocks = async (req, res) => {
   try {
-    const { courseId } = req.params;
-    const { blocks } = req.body;
+    const { id } = req.params; // ID del curso
+    const { clerkId, blocks } = req.body;
 
-    if (!Array.isArray(blocks)) {
-      return res.status(400).json({ error: "Formato inválido de bloques" });
+    // Validar
+    if (!id || !clerkId) {
+      return res.status(400).json({ error: "Faltan datos requeridos" });
     }
 
-    await CourseBlock.destroy({ where: { courseId } });
+    // Verificar que el curso exista y pertenezca al usuario
+    const course = await Course.findOne({ where: { id, creatorClerkId: clerkId } });
+    if (!course) {
+      return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
+    }
 
-    const savedBlocks = await Promise.all(
-      blocks.map(async (b) =>
-        CourseBlock.create({
-          courseId,
-          type: b.type,
-          content:
-            typeof b.content === "object" ? JSON.stringify(b.content) : b.content,
-        })
-      )
-    );
+    // Borrar bloques anteriores (para simplificar actualización completa)
+    await CourseBlock.destroy({ where: { courseId: id } });
 
-    const formatted = savedBlocks.map((b) => ({
-      id: b.id,
-      type: b.type,
-      content: typeof b.content === "string" ? JSON.parse(b.content) : b.content,
-    }));
+    // Crear nuevos bloques
+    const savedBlocks = [];
+    for (const block of blocks) {
+      const newBlock = await CourseBlock.create({
+        courseId: id,
+        type: block.type,
+        content: block.content, // se guarda como JSON
+      });
+      savedBlocks.push(newBlock);
+    }
 
-    return res.json({ success: true, blocks: formatted });
+    return res.json({
+      success: true,
+      message: "Bloques guardados correctamente",
+      blocks: savedBlocks,
+    });
   } catch (err) {
-    console.error("❌ Error al guardar bloques:", err);
+    console.error("❌ Error guardando bloques:", err);
     return res.status(500).json({ error: "Error guardando contenido del curso" });
   }
 };

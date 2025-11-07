@@ -21,7 +21,7 @@ const CourseBlock = sequelize.define(
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     courseId: { type: DataTypes.INTEGER, allowNull: false },
     type: { type: DataTypes.STRING, allowNull: false }, // text, image, video, quiz
-    content: { type: DataTypes.JSON, allowNull: false },
+    content: { type: DataTypes.JSON, allowNull: true },
   },
   { tableName: "CourseBlocks" }
 );
