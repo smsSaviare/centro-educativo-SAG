@@ -8,25 +8,24 @@ const getYoutubeEmbedUrl = (url) => {
   if (!url) return "";
   try {
     const u = new URL(url);
-
     let videoId = "";
 
     if (u.hostname.includes("youtube.com")) {
-      // Tomamos solo el parámetro 'v'
       videoId = u.searchParams.get("v");
     } else if (u.hostname.includes("youtu.be")) {
-      // Tomamos la parte de pathname
       videoId = u.pathname.slice(1);
     }
 
-    // Si no encontramos videoId, retornamos vacío
     if (!videoId) return "";
 
+    // Solo dejamos el ID del video, descartamos cualquier parámetro extra
     return `https://www.youtube.com/embed/${videoId}`;
   } catch {
     return "";
   }
 };
+
+console.log("embed fix")
 
 export default function CourseBuilder({ courseId, clerkId }) {
   const [blocks, setBlocks] = useState([]);
