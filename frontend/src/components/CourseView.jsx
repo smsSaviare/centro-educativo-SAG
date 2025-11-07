@@ -36,27 +36,25 @@ export default function CourseView() {
   }, [id]);
 
   const persistBlocks = async (blocksToSave) => {
-    try {
-      const clerkId = localStorage.getItem("clerkId"); // O tu fuente de clerkId
-      if (!clerkId) throw new Error("No hay clerkId");
+  try {
+    const clerkId = localStorage.getItem("clerkId"); // tu fuente real de clerkId
+    if (!clerkId) throw new Error("No hay clerkId");
 
-      const normalized = blocksToSave.map((b) => ({
-        type: b.type || "text",
-        content: b.content || "",
-        url: b.url || "",
-      }));
+    const normalized = blocksToSave.map((b) => ({
+      id: b.id,
+      type: b.type || "text",
+      content: b.content || "",
+      url: b.url || "",
+    }));
 
-      console.log("Guardando bloques: ", {
-        courseId: id,
-        clerkId,
-        blocks: normalized,
-      });
+    console.log("Guardando bloques: ", { courseId: id, clerkId, blocks: normalized });
 
-      await saveCourseBlocks(id, normalized, clerkId);
-    } catch (err) {
-      console.error("❌ Error guardando bloques:", err);
-    }
-  };
+    await saveCourseBlocks(id, clerkId, normalized); // <-- orden corregido
+  } catch (err) {
+    console.error("❌ Error guardando bloques:", err);
+  }
+};
+
 
   const handleDragEnd = (result) => {
     if (!result.destination) return;
