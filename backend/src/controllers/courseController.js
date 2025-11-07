@@ -163,11 +163,12 @@ exports.getCourseBlocks = async (req, res) => {
       order: [["id", "ASC"]],
     });
 
-    const formatted = blocks.map((b) => ({
-      id: b.id,
-      type: b.type,
-      content: b.content ? JSON.parse(b.content) : {}, // <- parse JSON
-    }));
+const formatted = blocks.map((b) => ({
+  id: b.id,
+  type: b.type,
+  content: JSON.parse(b.content), // <-- parse al leer
+}));
+
 
     return res.json({ blocks: formatted });
   } catch (err) {
@@ -214,12 +215,12 @@ exports.saveCourseBlocks = async (req, res) => {
         type: block.content?.type || "text",
         content: block.content?.content || "",
       };
+const newBlock = await CourseBlock.create({
+  courseId: id,
+  type: block.type,
+  content: JSON.stringify(block.content), // <-- serialize antes de guardar
+});
 
-      const newBlock = await CourseBlock.create({
-        courseId,
-        type: block.type || "text",
-        content: normalizedContent,
-      });
 
       savedBlocks.push(newBlock);
     }
