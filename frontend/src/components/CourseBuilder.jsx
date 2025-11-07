@@ -141,13 +141,14 @@ export default function CourseBuilder({ courseId, clerkId }) {
                 {block.url && (
                   <iframe
                     className="w-full h-64 rounded"
-                    src={getYoutubeEmbedUrl(block.url)}
+                    src={getYoutubeEmbedUrl(block.url)} // <-- aquí usamos la función robusta
                     title="Video del curso"
                     allowFullScreen
                   />
                 )}
               </>
             )}
+
 
             {block.type === "quiz" && (
               <div>
