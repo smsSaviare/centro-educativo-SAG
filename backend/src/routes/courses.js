@@ -41,6 +41,6 @@ router.delete("/:courseId", deleteCourse);
 
 // Bloques de contenido (mantén solo estas dos líneas)
 router.get("/:courseId/blocks", getCourseBlocks);
-router.post("/:courseId/blocks", saveCourseBlocks);
+router.put("/:courseId/blocks", saveCourseBlocks);
 
 module.exports = router;
