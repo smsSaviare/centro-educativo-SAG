@@ -179,13 +179,22 @@ exports.getCourseBlocks = async (req, res) => {
 /**
  * 💾 Guardar bloques de contenido del curso (usando CourseBlock)
  */
+// backend/src/controllers/courseController.js
+
+/**
+ * 💾 Guardar bloques de contenido del curso (corregido)
+ */
 exports.saveCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params; // ID del curso
     const { clerkId, blocks } = req.body;
 
+    // Validaciones básicas
     if (!courseId || !clerkId) {
       return res.status(400).json({ error: "Faltan datos requeridos" });
+    }
+    if (!Array.isArray(blocks)) {
+      return res.status(400).json({ error: "Blocks debe ser un array" });
     }
 
     // Verificar que el curso exista y pertenezca al usuario
@@ -200,16 +209,19 @@ exports.saveCourseBlocks = async (req, res) => {
     // Crear nuevos bloques
     const savedBlocks = [];
     for (const block of blocks) {
+      // Normalizar contenido para que solo tenga las propiedades necesarias
+      const normalizedContent = {
+        type: block.content?.type || "text",
+        content: block.content?.content || "",
+      };
+
       const newBlock = await CourseBlock.create({
         courseId,
-        type: block.type,
-        content: JSON.stringify(block.content), // <- stringify JSON
+        type: block.type || "text",
+        content: normalizedContent,
       });
-      savedBlocks.push({
-        id: newBlock.id,
-        type: newBlock.type,
-        content: block.content, // devolver objeto original
-      });
+
+      savedBlocks.push(newBlock);
     }
 
     return res.json({
