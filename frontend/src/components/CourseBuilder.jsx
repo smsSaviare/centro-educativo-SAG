@@ -3,22 +3,30 @@ import { useState, useEffect } from "react";
 import { getCourseBlocks, saveCourseBlocks } from "../api";
 
 // Convierte cualquier URL de YouTube a la versión embebida
+// Convierte cualquier URL de YouTube a la versión embebida, ignorando parámetros extra
 const getYoutubeEmbedUrl = (url) => {
   if (!url) return "";
   try {
     const u = new URL(url);
+
     let videoId = "";
+
     if (u.hostname.includes("youtube.com")) {
+      // Tomamos solo el parámetro 'v'
       videoId = u.searchParams.get("v");
     } else if (u.hostname.includes("youtu.be")) {
+      // Tomamos la parte de pathname
       videoId = u.pathname.slice(1);
     }
-    return videoId ? `https://www.youtube.com/embed/${videoId}` : "";
+
+    // Si no encontramos videoId, retornamos vacío
+    if (!videoId) return "";
+
+    return `https://www.youtube.com/embed/${videoId}`;
   } catch {
     return "";
   }
 };
-
 
 export default function CourseBuilder({ courseId, clerkId }) {
   const [blocks, setBlocks] = useState([]);
