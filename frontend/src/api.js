@@ -67,6 +67,7 @@ export async function getCourseBlocks(courseId, clerkId) {
 
 // Guardar bloques de un curso
 export const saveCourseBlocks = async (courseId, clerkId, blocks) => {
+  console.log("Guardando bloques:", { courseId, clerkId, blocks }); // <- depuración
   const res = await fetch(`${API_BASE}/courses/${courseId}/blocks`, {
     method: "PUT",
     headers: {
