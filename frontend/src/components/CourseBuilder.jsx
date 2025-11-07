@@ -4,26 +4,37 @@ import { getCourseBlocks, saveCourseBlocks } from "../api";
 
 // Convierte cualquier URL de YouTube a la versión embebida
 // Convierte cualquier URL de YouTube a la versión embebida, ignorando parámetros extra
+// Convierte cualquier URL de YouTube a la versión embebida
 const getYoutubeEmbedUrl = (url) => {
   if (!url) return "";
   try {
     const u = new URL(url);
     let videoId = "";
+    let listId = "";
 
     if (u.hostname.includes("youtube.com")) {
       videoId = u.searchParams.get("v");
+      listId = u.searchParams.get("list");
     } else if (u.hostname.includes("youtu.be")) {
       videoId = u.pathname.slice(1);
+      listId = u.searchParams.get("list");
     }
 
-    if (!videoId) return "";
+    if (!videoId && !listId) return "";
 
-    // Solo dejamos el ID del video, descartamos cualquier parámetro extra
-    return `https://www.youtube.com/embed/${videoId}`;
+    if (listId && !videoId) {
+      // Solo lista de reproducción
+      return `https://www.youtube.com/embed/videoseries?list=${listId}&rel=0&modestbranding=1`;
+    }
+
+    // Video individual, agregamos lista si existe
+    return `https://www.youtube.com/embed/${videoId}${listId ? `?list=${listId}` : ""}&rel=0&modestbranding=1`;
   } catch {
     return "";
   }
 };
+
+
 
 console.log("embed fix")
 
