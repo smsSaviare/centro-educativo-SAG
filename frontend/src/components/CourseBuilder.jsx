@@ -9,13 +9,14 @@ const getYoutubeEmbedUrl = (url) => {
   if (!url) return "";
   try {
     const u = new URL(url);
-    let videoId = "";
-    let listId = "";
+    const hostname = u.hostname.toLowerCase();
+    let videoId = null;
+    let listId = null;
 
-    if (u.hostname.includes("youtube.com")) {
+    if (hostname.includes("youtube.com")) {
       videoId = u.searchParams.get("v");
       listId = u.searchParams.get("list");
-    } else if (u.hostname.includes("youtu.be")) {
+    } else if (hostname.includes("youtu.be")) {
       videoId = u.pathname.slice(1);
       listId = u.searchParams.get("list");
     }
@@ -23,18 +24,16 @@ const getYoutubeEmbedUrl = (url) => {
     if (!videoId && !listId) return "";
 
     if (listId && !videoId) {
-      // Solo lista de reproducción
-      return `https://www.youtube.com/embed/videoseries?list=${listId}&rel=0&modestbranding=1`;
+      // Solo playlist
+      return `https://www.youtube.com/embed/videoseries?list=${listId}`;
     }
 
-    // Video individual, agregamos lista si existe
-    return `https://www.youtube.com/embed/${videoId}${listId ? `?list=${listId}` : ""}&rel=0&modestbranding=1`;
+    // Video individual (si tiene lista la agregamos)
+    return `https://www.youtube.com/embed/${videoId}${listId ? `?list=${listId}` : ""}`;
   } catch {
     return "";
   }
 };
-
-
 
 console.log("embed fix")
 
