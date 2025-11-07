@@ -38,74 +38,75 @@ export default function CourseView() {
         </p>
       )}
 
-      {blocks.map((b, i) => {
-        // 🧠 Asegurar que el contenido esté bien formateado
-        let content = b.content;
-        if (typeof content === "string") {
-          try {
-            content = JSON.parse(content);
-          } catch {
-            content = { content };
-          }
-        }
+{blocks.map((b, i) => {
+  // 🔍 Normalizar estructura del bloque
+  let content = b.content;
 
-        // 🔍 Log de cada bloque
-        console.log(`📦 Bloque ${i + 1}:`, { type: b.type, content });
+  // Si el contenido viene anidado dentro de un objeto { type, content, url }
+  if (content && typeof content === "object" && "content" in content) {
+    content = content.content;
+  }
 
-        if (!b.type) {
-          return (
-            <p key={i} className="text-red-500">
-              ⚠️ Bloque sin tipo definido (ver consola)
-            </p>
-          );
-        }
+  // 🔧 Mostrar según el tipo
+  if (b.type === "text") {
+    return (
+      <div key={i} className="my-6">
+        <p className="text-lg leading-relaxed whitespace-pre-wrap">
+          {content || "(Bloque vacío)"}
+        </p>
+      </div>
+    );
+  }
 
-        if (b.type === "text") {
-          return (
-            <div key={i} className="my-6">
-              <p className="text-lg leading-relaxed whitespace-pre-wrap">
-                {content?.content || "(Bloque vacío)"}
-              </p>
-            </div>
-          );
-        }
+  if (b.type === "image") {
+    const url = b.url || b.content?.url || (typeof b.content === "string" ? b.content : null);
+    return (
+      <div key={i} className="my-6 flex justify-center">
+        {url ? (
+          <img
+            src={url}
+            alt="Contenido del curso"
+            className="rounded-2xl shadow-md max-h-[400px]"
+          />
+        ) : (
+          <p className="text-gray-400 italic">Imagen sin URL 🖼️</p>
+        )}
+      </div>
+    );
+  }
 
-        if (b.type === "image") {
-          return (
-            <div key={i} className="my-6 flex justify-center">
-              <img
-                src={content?.url || b.url}
-                alt="Contenido del curso"
-                className="rounded-2xl shadow-md max-h-[400px]"
-              />
-            </div>
-          );
-        }
+  if (b.type === "video" || (b.type === "link" && b.content?.url?.includes("youtube"))) {
+    const url =
+      b.url || b.content?.url || (typeof b.content === "string" ? b.content : null);
+    if (!url)
+      return (
+        <p key={i} className="text-gray-400 italic">
+          Video sin URL 🎥
+        </p>
+      );
+    const embedUrl = url.replace("watch?v=", "embed/");
+    return (
+      <div key={i} className="my-6 flex justify-center">
+        <iframe
+          width="560"
+          height="315"
+          src={embedUrl}
+          title="Video del curso"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="rounded-2xl shadow-md"
+        ></iframe>
+      </div>
+    );
+  }
 
-        if (b.type === "link" && content?.url?.includes("youtube")) {
-          const embedUrl = content.url.replace("watch?v=", "embed/");
-          return (
-            <div key={i} className="my-6 flex justify-center">
-              <iframe
-                width="560"
-                height="315"
-                src={embedUrl}
-                title="Video del curso"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="rounded-2xl shadow-md"
-              ></iframe>
-            </div>
-          );
-        }
-
-        return (
-          <p key={i} className="text-gray-400 italic">
-            Tipo de bloque no soportado o vacío 🧱
-          </p>
-        );
-      })}
+  return (
+    <p key={i} className="text-gray-400 italic">
+      Tipo de bloque no soportado o vacío 🧱
+    </p>
+  );
+})}
     </div>
   );
 }
