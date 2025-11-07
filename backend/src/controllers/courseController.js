@@ -214,13 +214,14 @@ exports.saveCourseBlocks = async (req, res) => {
       const normalizedContent = {
         type: block.content?.type || "text",
         content: block.content?.content || "",
+        url: block.content?.url || "", // si necesitas URL
       };
-const newBlock = await CourseBlock.create({
-  courseId: id,
-  type: block.type,
-  content: JSON.stringify(block.content), // <-- serialize antes de guardar
-});
 
+      const newBlock = await CourseBlock.create({
+        courseId: courseId,
+        type: block.type,
+        content: JSON.stringify(normalizedContent), // <-- serialize antes de guardar
+      });
 
       savedBlocks.push(newBlock);
     }

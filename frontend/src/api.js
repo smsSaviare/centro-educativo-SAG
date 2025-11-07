@@ -67,18 +67,18 @@ export async function getCourseBlocks(courseId, clerkId) {
 
 // Guardar bloques de un curso
 export const saveCourseBlocks = async (courseId, clerkId, blocks) => {
-  // Asegurarnos de que blocks sea siempre un array
-  const normalizedBlocks = Array.isArray(blocks) ? blocks : [blocks];
+  // Si por algún motivo clerkId es array, tomar el primero
+  const singleClerkId = Array.isArray(clerkId) ? clerkId[0] : clerkId;
 
-  console.log("Guardando bloques:", { courseId, clerkId, normalizedBlocks });
+  console.log("Guardando bloques:", { courseId, clerkId: singleClerkId, blocks });
 
   const res = await fetch(`${API_BASE}/courses/${courseId}/blocks`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      "x-clerk-id": clerkId,
+      "x-clerk-id": singleClerkId,
     },
-    body: JSON.stringify({ clerkId, blocks: normalizedBlocks }),
+    body: JSON.stringify({ clerkId: singleClerkId, blocks }),
   });
 
   if (!res.ok) {
