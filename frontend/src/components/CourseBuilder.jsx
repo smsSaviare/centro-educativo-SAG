@@ -2,6 +2,24 @@
 import { useState, useEffect } from "react";
 import { getCourseBlocks, saveCourseBlocks } from "../api";
 
+// Convierte cualquier URL de YouTube a la versión embebida
+const getYoutubeEmbedUrl = (url) => {
+  if (!url) return "";
+  try {
+    const u = new URL(url);
+    let videoId = "";
+    if (u.hostname.includes("youtube.com")) {
+      videoId = u.searchParams.get("v");
+    } else if (u.hostname.includes("youtu.be")) {
+      videoId = u.pathname.slice(1);
+    }
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : "";
+  } catch {
+    return "";
+  }
+};
+
+
 export default function CourseBuilder({ courseId, clerkId }) {
   const [blocks, setBlocks] = useState([]);
   const [message, setMessage] = useState("");
@@ -114,8 +132,8 @@ export default function CourseBuilder({ courseId, clerkId }) {
                 />
                 {block.url && (
                   <iframe
-                    className="w-full h-64 rounded mt-2"
-                    src={block.url.replace("watch?v=", "embed/")}
+                    className="w-full h-64 rounded"
+                    src={getYoutubeEmbedUrl(block.url)}
                     title="Video del curso"
                     allowFullScreen
                   />
