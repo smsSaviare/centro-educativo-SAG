@@ -103,7 +103,7 @@ export default function CourseEditor() {
     }
   };
 
-  // ✏️ Editar curso (abre el CourseBuilder)
+  // ✏️ Editar curso
   const handleEditCourse = async (course) => {
     try {
       const data = await getCourseById(course.id);
@@ -139,9 +139,7 @@ export default function CourseEditor() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h2 className="text-2xl font-bold text-green-700 mb-4">
-        Panel del Docente
-      </h2>
+      <h2 className="text-2xl font-bold text-green-700 mb-4">Panel del Docente</h2>
 
       {/* CREAR / EDITAR */}
       <div className="bg-white p-4 rounded shadow mb-8">
@@ -173,14 +171,9 @@ export default function CourseEditor() {
         </form>
       </div>
 
-      {/* CourseBuilder aparece cuando hay un curso en edición */}
-      {editingCourse && (
-        <div className="bg-white p-4 rounded shadow mb-8">
-          <h3 className="text-lg font-semibold mb-3 text-green-700">
-            ✏️ Constructor de contenido para: {editingCourse.title}
-          </h3>
-          <CourseBuilder courseId={editingCourse.id} />
-        </div>
+      {/* CourseBuilder aparece solo si hay un curso en edición */}
+      {editingCourse && clerkId && (
+        <CourseBuilder courseId={editingCourse.id} clerkId={clerkId} />
       )}
 
       {/* LISTADO DE CURSOS */}
