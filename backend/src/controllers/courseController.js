@@ -151,69 +151,97 @@ exports.deleteCourse = async (req, res) => {
   }
 };
 
-// 📦 Obtener los bloques de un curso
-const getCourseBlocks = async (req, res) => {
+/**
+ * 📘 Obtener bloques de contenido del curso (corregido)
+ */
+exports.getCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params;
+
     const blocks = await CourseBlock.findAll({
       where: { courseId },
       order: [["id", "ASC"]],
     });
 
-    // 🔧 Normalizar estructura
-    const normalized = blocks.map(b => {
-      let content = b.content;
-      if (content && typeof content === "object" && "content" in content) {
-        content = content.content;
+    // 🔹 Parsear y limpiar el contenido al enviar al frontend
+    const formatted = blocks.map((b) => {
+      let parsed = {};
+      try {
+        parsed = JSON.parse(b.content || "{}");
+      } catch (e) {
+        parsed = { content: b.content || "" };
       }
+
       return {
         id: b.id,
-        type: b.type,
-        content: content,
-        url: b.url || (typeof b.content === "object" ? b.content.url : null),
+        type: b.type || parsed.type || "text",
+        content: parsed.content || "",
+        url: parsed.url || "",
       };
     });
 
-    res.json({ blocks: normalized });
+    console.log("🧩 Bloques enviados al frontend:", formatted);
+    return res.json({ blocks: formatted });
   } catch (err) {
-    console.error("❌ Error obteniendo bloques:", err);
-    res.status(500).json({ error: "Error obteniendo bloques" });
+    console.error("❌ Error al obtener bloques:", err);
+    return res.status(500).json({ error: "Error obteniendo contenido del curso" });
   }
 };
 
-// 💾 Guardar los bloques de un curso
-const saveCourseBlocks = async (req, res) => {
+/**
+ * 💾 Guardar bloques de contenido del curso (corregido)
+ */
+exports.saveCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { blocks } = req.body;
+    const { clerkId, blocks } = req.body;
 
-    // Borramos los bloques anteriores
+    if (!courseId || !clerkId) {
+      return res.status(400).json({ error: "Faltan datos requeridos" });
+    }
+    if (!Array.isArray(blocks)) {
+      return res.status(400).json({ error: "Blocks debe ser un array" });
+    }
+
+    const course = await Course.findOne({
+      where: { id: courseId, creatorClerkId: clerkId },
+    });
+    if (!course) {
+      return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
+    }
+
+    // 🔹 Borrar los bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
 
-    // Guardamos los nuevos bloques
-    const cleanBlocks = blocks.map(b => ({
-      courseId,
-      type: b.type,
-      content:
-        typeof b.content === "object"
-          ? b.content.content || ""
-          : b.content || "",
-      url:
-        b.url ||
-        (typeof b.content === "object" ? b.content.url : null) ||
-        null,
-    }));
+    // 🔹 Crear nuevos bloques
+    const savedBlocks = [];
+    for (const block of blocks) {
+      const normalized = {
+        type: block.type || "text",
+        content: block.content?.content || block.content || "",
+        url: block.content?.url || block.url || "",
+      };
 
-    await CourseBlock.bulkCreate(cleanBlocks);
+      const newBlock = await CourseBlock.create({
+        courseId,
+        type: normalized.type,
+        content: JSON.stringify({
+          content: normalized.content,
+          url: normalized.url,
+        }),
+      });
 
-    res.json({ message: "Bloques guardados correctamente" });
+      savedBlocks.push(newBlock);
+    }
+
+    console.log("✅ Bloques guardados correctamente:", savedBlocks);
+    return res.json({
+      success: true,
+      message: "Bloques guardados correctamente",
+      blocks: savedBlocks,
+    });
   } catch (err) {
     console.error("❌ Error guardando bloques:", err);
-    res.status(500).json({ error: "Error guardando bloques" });
+    return res.status(500).json({ error: "Error guardando contenido del curso" });
   }
-};
-
-module.exports = {
-  getCourseBlocks,
-  saveCourseBlocks,
 };
