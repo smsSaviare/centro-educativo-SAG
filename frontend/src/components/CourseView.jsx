@@ -1,3 +1,4 @@
+// frontend/src/components/CourseView.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getCourseById } from "../api"; // asegúrate de tener esta función en api/index.js
