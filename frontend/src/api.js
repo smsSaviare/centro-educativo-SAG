@@ -1,6 +1,6 @@
 // frontend/src/api.js
 const API_BASE =
-import.meta.env.VITE_API_BASE || "[https://sag-backend-b2j6.onrender.com](https://sag-backend-b2j6.onrender.com)";
+import.meta.env.VITE_API_BASE || "https://sag-backend-b2j6.onrender.com";
 
 /**
 
