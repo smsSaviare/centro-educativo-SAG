@@ -166,7 +166,7 @@ exports.getCourseBlocks = async (req, res) => {
     const formatted = blocks.map((b) => ({
       id: b.id,
       type: b.type,
-      content: b.content,
+      content: b.content ? JSON.parse(b.content) : {}, // <- parse JSON
     }));
 
     return res.json({ blocks: formatted });
@@ -176,20 +176,14 @@ exports.getCourseBlocks = async (req, res) => {
   }
 };
 
-
-// Guardar bloques
-/**
- * 💾 Guardar bloques de contenido del curso
- */
 /**
  * 💾 Guardar bloques de contenido del curso (usando CourseBlock)
  */
 exports.saveCourseBlocks = async (req, res) => {
   try {
-    const { courseId } = req.params; // CORRECTO
+    const { courseId } = req.params; // ID del curso
     const { clerkId, blocks } = req.body;
 
-    // Validar
     if (!courseId || !clerkId) {
       return res.status(400).json({ error: "Faltan datos requeridos" });
     }
@@ -200,7 +194,7 @@ exports.saveCourseBlocks = async (req, res) => {
       return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
     }
 
-    // Borrar bloques anteriores (para simplificar actualización completa)
+    // Borrar bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
 
     // Crear nuevos bloques
@@ -209,9 +203,13 @@ exports.saveCourseBlocks = async (req, res) => {
       const newBlock = await CourseBlock.create({
         courseId,
         type: block.type,
-        content: block.content, // se guarda como JSON
+        content: JSON.stringify(block.content), // <- stringify JSON
       });
-      savedBlocks.push(newBlock);
+      savedBlocks.push({
+        id: newBlock.id,
+        type: newBlock.type,
+        content: block.content, // devolver objeto original
+      });
     }
 
     return res.json({
@@ -224,4 +222,3 @@ exports.saveCourseBlocks = async (req, res) => {
     return res.status(500).json({ error: "Error guardando contenido del curso" });
   }
 };
-
