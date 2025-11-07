@@ -186,28 +186,28 @@ exports.getCourseBlocks = async (req, res) => {
  */
 exports.saveCourseBlocks = async (req, res) => {
   try {
-    const { id } = req.params; // ID del curso
+    const { courseId } = req.params; // CORRECTO
     const { clerkId, blocks } = req.body;
 
     // Validar
-    if (!id || !clerkId) {
+    if (!courseId || !clerkId) {
       return res.status(400).json({ error: "Faltan datos requeridos" });
     }
 
     // Verificar que el curso exista y pertenezca al usuario
-    const course = await Course.findOne({ where: { id, creatorClerkId: clerkId } });
+    const course = await Course.findOne({ where: { id: courseId, creatorClerkId: clerkId } });
     if (!course) {
       return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
     }
 
     // Borrar bloques anteriores (para simplificar actualización completa)
-    await CourseBlock.destroy({ where: { courseId: id } });
+    await CourseBlock.destroy({ where: { courseId } });
 
     // Crear nuevos bloques
     const savedBlocks = [];
     for (const block of blocks) {
       const newBlock = await CourseBlock.create({
-        courseId: id,
+        courseId,
         type: block.type,
         content: block.content, // se guarda como JSON
       });
@@ -224,3 +224,4 @@ exports.saveCourseBlocks = async (req, res) => {
     return res.status(500).json({ error: "Error guardando contenido del curso" });
   }
 };
+
