@@ -2,127 +2,88 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getCourseById, getCourseBlocks, saveCourseBlocks } from "../api";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
-// @dnd-kit imports
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-
-function SortableBlock({ block, onChange }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: block.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    marginBottom: "1.5rem",
-  };
-
-  const handleTextChange = (e) => {
-    onChange(block.id, { ...block, content: e.target.value });
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className="p-4 border rounded-xl shadow-sm bg-gray-50"
-    >
-      {block.type === "text" && (
-        <textarea
-          className="w-full p-2 rounded-md border border-gray-300 resize-none"
-          value={block.content}
-          onChange={handleTextChange}
-          rows={3}
-        />
-      )}
-
-      {block.type === "image" && block.url && (
-        <img
-          src={block.url}
-          alt="Contenido del curso"
-          className="rounded-2xl shadow-md max-h-[400px] w-full object-contain"
-        />
-      )}
-
-      {block.type === "video" && block.url && (
-        <iframe
-          width="560"
-          height="315"
-          src={block.url.replace("watch?v=", "embed/")}
-          title="Video del curso"
-          frameBorder="0"
-          allowFullScreen
-          className="rounded-2xl shadow-md w-full"
-        ></iframe>
-      )}
-    </div>
-  );
-}
+// Función auxiliar para reordenar array
+const arrayMove = (arr, from, to) => {
+  const newArr = [...arr];
+  const [moved] = newArr.splice(from, 1);
+  newArr.splice(to, 0, moved);
+  return newArr;
+};
 
 export default function CourseView() {
   const { id } = useParams();
   const [course, setCourse] = useState(null);
   const [blocks, setBlocks] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const sensors = useSensors(useSensor(PointerSensor));
-
-  // ⚡ Fetch curso y bloques
   useEffect(() => {
     const fetchData = async () => {
-      const courseData = await getCourseById(id);
-      setCourse(courseData);
+      try {
+        const courseData = await getCourseById(id);
+        setCourse(courseData);
 
-      const data = await getCourseBlocks(id);
-      setBlocks(data.blocks || []);
+        const data = await getCourseBlocks(id);
+        setBlocks(data.blocks || []);
+      } catch (err) {
+        console.error("❌ Error cargando curso:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [id]);
 
-  const handleDragEnd = async (event) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      const oldIndex = blocks.findIndex((b) => b.id === active.id);
-      const newIndex = blocks.findIndex((b) => b.id === over.id);
-      const newBlocks = arrayMove(blocks, oldIndex, newIndex);
-      setBlocks(newBlocks);
-      await saveCourseBlocks(id, newBlocks);
+  const persistBlocks = async (blocksToSave) => {
+    try {
+      const clerkId = localStorage.getItem("clerkId"); // O tu fuente de clerkId
+      if (!clerkId) throw new Error("No hay clerkId");
+
+      const normalized = blocksToSave.map((b) => ({
+        type: b.type || "text",
+        content: b.content || "",
+        url: b.url || "",
+      }));
+
+      console.log("Guardando bloques: ", {
+        courseId: id,
+        clerkId,
+        blocks: normalized,
+      });
+
+      await saveCourseBlocks(id, normalized, clerkId);
+    } catch (err) {
+      console.error("❌ Error guardando bloques:", err);
     }
   };
 
-  const handleAddBlock = (type) => {
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    const newBlocks = arrayMove(blocks, result.source.index, result.destination.index);
+    setBlocks(newBlocks);
+    persistBlocks(newBlocks);
+  };
+
+  const handleBlockChange = (blockId, updatedBlock) => {
+    const newBlocks = blocks.map((b) => (b.id === blockId ? updatedBlock : b));
+    setBlocks(newBlocks);
+    persistBlocks(newBlocks);
+  };
+
+  const addBlock = (type = "text") => {
     const newBlock = {
-      id: Date.now().toString(), // ID temporal
+      id: Date.now().toString(),
       type,
       content: "",
       url: "",
     };
-    const updated = [...blocks, newBlock];
-    setBlocks(updated);
-    saveCourseBlocks(id, updated);
+    const newBlocks = [...blocks, newBlock];
+    setBlocks(newBlocks);
+    persistBlocks(newBlocks);
   };
 
-  const handleBlockChange = (blockId, updatedBlock) => {
-    const updated = blocks.map((b) => (b.id === blockId ? updatedBlock : b));
-    setBlocks(updated);
-    saveCourseBlocks(id, updated);
-  };
-
-  if (!course)
-    return <p className="text-gray-500 text-center">Cargando curso...</p>;
+  if (loading) return <p className="text-gray-500 text-center">Cargando curso...</p>;
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow">
@@ -131,50 +92,76 @@ export default function CourseView() {
 
       {/* Botones para agregar bloques */}
       <div className="flex gap-2 mb-6">
-        <button
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          onClick={() => handleAddBlock("text")}
-        >
-          Agregar texto
-        </button>
-        <button
-          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-          onClick={() => handleAddBlock("image")}
-        >
-          Agregar imagen
-        </button>
-        <button
-          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-          onClick={() => handleAddBlock("video")}
-        >
-          Agregar video
-        </button>
+        <button onClick={() => addBlock("text")} className="btn">Agregar Texto</button>
+        <button onClick={() => addBlock("image")} className="btn">Agregar Imagen</button>
+        <button onClick={() => addBlock("video")} className="btn">Agregar Video</button>
       </div>
 
-      {blocks.length === 0 && (
-        <p className="text-gray-500 text-center">
-          Aquí se mostrará el contenido del curso 📘
-        </p>
-      )}
+      {!blocks || blocks.length === 0 ? (
+        <p className="text-gray-500 text-center">Aquí se mostrará el contenido del curso 📘</p>
+      ) : (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="blocks">
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef}>
+                {blocks.map((b, index) => {
+                  const content = b.content || "";
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={blocks.map((b) => b.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          {blocks.map((block) => (
-            <SortableBlock
-              key={block.id}
-              block={block}
-              onChange={handleBlockChange}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
+                  return (
+                    <Draggable key={b.id} draggableId={b.id} index={index}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="my-6 p-4 border rounded-xl bg-gray-50"
+                        >
+                          {/* Renderizado según tipo */}
+                          {b.type === "text" && (
+                            <textarea
+                              className="w-full p-2 border rounded"
+                              value={content}
+                              placeholder="Escribe aquí..."
+                              onChange={(e) =>
+                                handleBlockChange(b.id, { ...b, content: e.target.value })
+                              }
+                            />
+                          )}
+
+                          {b.type === "image" && (
+                            <input
+                              type="text"
+                              className="w-full p-2 border rounded"
+                              placeholder="URL de la imagen"
+                              value={b.url || ""}
+                              onChange={(e) =>
+                                handleBlockChange(b.id, { ...b, url: e.target.value })
+                              }
+                            />
+                          )}
+
+                          {b.type === "video" && (
+                            <input
+                              type="text"
+                              className="w-full p-2 border rounded"
+                              placeholder="URL del video (YouTube)"
+                              value={b.url || ""}
+                              onChange={(e) =>
+                                handleBlockChange(b.id, { ...b, url: e.target.value })
+                              }
+                            />
+                          )}
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      )}
     </div>
   );
 }
