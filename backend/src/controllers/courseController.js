@@ -152,7 +152,7 @@ exports.deleteCourse = async (req, res) => {
 };
 
 /**
- * 📘 Bloques de contenido del curso
+ * 📘 Obtener bloques de contenido del curso (corregido)
  */
 exports.getCourseBlocks = async (req, res) => {
   try {
@@ -163,13 +163,24 @@ exports.getCourseBlocks = async (req, res) => {
       order: [["id", "ASC"]],
     });
 
-const formatted = blocks.map((b) => ({
-  id: b.id,
-  type: b.type,
-  content: JSON.parse(b.content), // <-- parse al leer
-}));
+    // 🔹 Parsear y limpiar el contenido al enviar al frontend
+    const formatted = blocks.map((b) => {
+      let parsed = {};
+      try {
+        parsed = JSON.parse(b.content || "{}");
+      } catch (e) {
+        parsed = { content: b.content || "" };
+      }
 
+      return {
+        id: b.id,
+        type: b.type || parsed.type || "text",
+        content: parsed.content || "",
+        url: parsed.url || "",
+      };
+    });
 
+    console.log("🧩 Bloques enviados al frontend:", formatted);
     return res.json({ blocks: formatted });
   } catch (err) {
     console.error("❌ Error al obtener bloques:", err);
@@ -178,19 +189,13 @@ const formatted = blocks.map((b) => ({
 };
 
 /**
- * 💾 Guardar bloques de contenido del curso (usando CourseBlock)
- */
-// backend/src/controllers/courseController.js
-
-/**
  * 💾 Guardar bloques de contenido del curso (corregido)
  */
 exports.saveCourseBlocks = async (req, res) => {
   try {
-    const { courseId } = req.params; // ID del curso
+    const { courseId } = req.params;
     const { clerkId, blocks } = req.body;
 
-    // Validaciones básicas
     if (!courseId || !clerkId) {
       return res.status(400).json({ error: "Faltan datos requeridos" });
     }
@@ -198,34 +203,38 @@ exports.saveCourseBlocks = async (req, res) => {
       return res.status(400).json({ error: "Blocks debe ser un array" });
     }
 
-    // Verificar que el curso exista y pertenezca al usuario
-    const course = await Course.findOne({ where: { id: courseId, creatorClerkId: clerkId } });
+    const course = await Course.findOne({
+      where: { id: courseId, creatorClerkId: clerkId },
+    });
     if (!course) {
       return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
     }
 
-    // Borrar bloques anteriores
+    // 🔹 Borrar los bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
 
-    // Crear nuevos bloques
+    // 🔹 Crear nuevos bloques
     const savedBlocks = [];
     for (const block of blocks) {
-      // Normalizar contenido para que solo tenga las propiedades necesarias
-      const normalizedContent = {
-        type: block.content?.type || "text",
-        content: block.content?.content || "",
-        url: block.content?.url || "", // si necesitas URL
+      const normalized = {
+        type: block.type || "text",
+        content: block.content?.content || block.content || "",
+        url: block.content?.url || block.url || "",
       };
 
       const newBlock = await CourseBlock.create({
-        courseId: courseId,
-        type: block.type,
-        content: JSON.stringify(normalizedContent), // <-- serialize antes de guardar
+        courseId,
+        type: normalized.type,
+        content: JSON.stringify({
+          content: normalized.content,
+          url: normalized.url,
+        }),
       });
 
       savedBlocks.push(newBlock);
     }
 
+    console.log("✅ Bloques guardados correctamente:", savedBlocks);
     return res.json({
       success: true,
       message: "Bloques guardados correctamente",
