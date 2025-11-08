@@ -160,7 +160,7 @@ exports.getCourseBlocks = async (req, res) => {
 
     const blocks = await CourseBlock.findAll({
       where: { courseId },
-      order: [["id", "ASC"]],
+      order: [["id", "DESC"]],
     });
 
     const formatted = blocks.map((b) => {
