@@ -21,6 +21,11 @@ const getYoutubeEmbedUrl = (url) => {
       listId = u.searchParams.get("list");
     }
 
+    // Limpiar IDs: solo letras, números, guiones y guiones bajos
+    const sanitize = (id) => (id ? id.match(/[a-zA-Z0-9_-]+/g)?.join("") : null);
+    videoId = sanitize(videoId);
+    listId = sanitize(listId);
+
     if (!videoId && !listId) return "";
 
     if (listId && !videoId) {
@@ -41,19 +46,19 @@ export default function CourseBuilder({ courseId, clerkId }) {
   const [blocks, setBlocks] = useState([]);
   const [message, setMessage] = useState("");
 
-  // Cargar bloques existentes
-  useEffect(() => {
-    const loadBlocks = async () => {
-      if (!clerkId) return;
-      try {
-        const data = await getCourseBlocks(courseId, clerkId);
-        setBlocks(Array.isArray(data.blocks) ? data.blocks : []);
-      } catch (err) {
-        console.error("❌ Error cargando bloques:", err);
-      }
-    };
-    if (courseId && clerkId) loadBlocks();
-  }, [courseId, clerkId]);
+useEffect(() => {
+  const loadBlocks = async () => {
+    if (!clerkId) return;
+    try {
+      const data = await getCourseBlocks(courseId, clerkId);
+      setBlocks(Array.isArray(data.blocks) ? data.blocks : []); // <-- fallback
+    } catch (err) {
+      console.error("❌ Error cargando bloques:", err);
+      setBlocks([]); // fallback seguro
+    }
+  };
+  if (courseId && clerkId) loadBlocks();
+}, [courseId, clerkId]);
 
   // Guardar bloques automáticamente
   const persistBlocks = async (newBlocks) => {
@@ -68,32 +73,28 @@ export default function CourseBuilder({ courseId, clerkId }) {
     }
   };
 
-  // Agregar bloque
-  const addBlock = (type) => {
-    const newBlock =
-      type === "quiz"
-        ? { id: Date.now().toString(), type: "quiz", question: "", options: ["", ""], correct: 0 }
-        : { id: Date.now().toString(), type, content: "", url: "" };
-    const newBlocks = [...blocks, newBlock];
-    setBlocks(newBlocks);
-    persistBlocks(newBlocks);
-  };
+const addBlock = (type) => {
+  const newBlock =
+    type === "quiz"
+      ? { id: Date.now().toString(), type: "quiz", question: "", options: ["", ""], correct: 0 }
+      : { id: Date.now().toString(), type, content: "", url: "" };
+  const newBlocks = [...(blocks || []), newBlock]; // <-- fallback a []
+  setBlocks(newBlocks);
+  persistBlocks(newBlocks);
+};
 
-  // Actualizar bloque
-  const updateBlock = (index, field, value) => {
-    const newBlocks = [...blocks];
-    newBlocks[index][field] = value;
-    setBlocks(newBlocks);
-    persistBlocks(newBlocks);
-  };
+const updateBlock = (index, field, value) => {
+  const newBlocks = [...(blocks || [])]; // <-- fallback a []
+  newBlocks[index] = { ...newBlocks[index], [field]: value };
+  setBlocks(newBlocks);
+  persistBlocks(newBlocks);
+};
 
-  // Eliminar bloque
-  const removeBlock = (index) => {
-    if (!window.confirm("¿Eliminar este bloque?")) return;
-    const newBlocks = blocks.filter((_, i) => i !== index);
-    setBlocks(newBlocks);
-    persistBlocks(newBlocks);
-  };
+const removeBlock = (index) => {
+  const newBlocks = (blocks || []).filter((_, i) => i !== index); // <-- fallback a []
+  setBlocks(newBlocks);
+  persistBlocks(newBlocks);
+};
 
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white rounded shadow">
@@ -109,7 +110,7 @@ export default function CourseBuilder({ courseId, clerkId }) {
 
       {/* Render bloques */}
       <div className="space-y-6">
-        {blocks.map((block, index) => (
+        {(blocks || []).map((block, index) => (
           <div key={block.id} className="border rounded p-4 relative bg-gray-50 hover:shadow transition">
             <button
               onClick={() => removeBlock(index)}

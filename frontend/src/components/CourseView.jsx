@@ -16,9 +16,11 @@ export default function CourseView() {
         setCourse(courseData);
 
         const data = await getCourseBlocks(id);
+        // Siempre aseguramos que blocks sea un array
         setBlocks(Array.isArray(data.blocks) ? data.blocks : []);
       } catch (err) {
         console.error("❌ Error cargando curso:", err);
+        setBlocks([]); // fallback por si hay error
       } finally {
         setLoading(false);
       }
@@ -30,17 +32,25 @@ export default function CourseView() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow">
-      <h1 className="text-3xl font-bold mb-4">{course.title}</h1>
-      <p className="text-gray-600 mb-6">{course.description}</p>
+      <h1 className="text-3xl font-bold mb-4">{course?.title || "Curso sin título"}</h1>
+      <p className="text-gray-600 mb-6">{course?.description || "Sin descripción"}</p>
 
-      {blocks.length === 0 ? (
+      {(blocks || []).length === 0 ? (
         <p className="text-gray-500 text-center">No hay contenido disponible.</p>
       ) : (
         <div className="space-y-6">
-          {blocks.map((b) => (
-            <div key={b.id} className="p-4 border rounded-xl bg-gray-50">
-              {b.type === "text" && <p>{b.content}</p>}
-              {b.type === "image" && b.url && <img src={b.url} alt="Imagen del bloque" className="rounded max-h-64 object-contain" />}
+          {(blocks || []).map((b) => (
+            <div key={b.id || Math.random()} className="p-4 border rounded-xl bg-gray-50">
+              {b.type === "text" && <p>{b.content || ""}</p>}
+
+              {b.type === "image" && b.url && (
+                <img
+                  src={b.url}
+                  alt="Imagen del bloque"
+                  className="rounded max-h-64 object-contain"
+                />
+              )}
+
               {b.type === "video" && b.url && (
                 <iframe
                   className="w-full h-64 rounded"
@@ -49,12 +59,13 @@ export default function CourseView() {
                   allowFullScreen
                 />
               )}
+
               {b.type === "quiz" && (
                 <div>
-                  <p className="font-semibold">{b.question}</p>
+                  <p className="font-semibold">{b.question || "Pregunta sin texto"}</p>
                   <ul className="list-disc ml-6">
-                    {b.options.map((opt, i) => (
-                      <li key={i}>{opt}</li>
+                    {(b.options || []).map((opt, i) => (
+                      <li key={i}>{opt || "Opción vacía"}</li>
                     ))}
                   </ul>
                 </div>
