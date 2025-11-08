@@ -79,11 +79,12 @@ const newBlock =
     ? {
         id: Date.now().toString(),
         type: "quiz",
-        question: "Pregunta sin texto",
-        options: ["Opción 1", "Opción 2"],
+        question: "",
+        options: ["", ""],
         correct: 0
       }
     : { id: Date.now().toString(), type, content: "", url: "" };
+
   const newBlocks = [...(blocks || []), newBlock]; // <-- fallback a []
   setBlocks(newBlocks);
   persistBlocks(newBlocks);

@@ -70,10 +70,13 @@ export default function CourseView() {
 
               {b.type === "quiz" && (
                 <div>
-                  <p className="font-semibold">{b.question || "Pregunta sin texto"}</p>
+                  <p className="font-semibold">{b.question !== "" ? b.question : "Pregunta sin texto"}</p>
                   <ul className="list-disc ml-6">
-                    {(b.options || []).map((opt, i) => (
-                      <li key={i}>{opt || "Opción vacía"}</li>
+                    {(b.options && b.options.length > 0
+                      ? b.options
+                      : ["Opción 1", "Opción 2"]
+                    ).map((opt, i) => (
+                      <li key={i}>{opt !== "" ? opt : `Opción ${i + 1}`}</li>
                     ))}
                   </ul>
                 </div>
