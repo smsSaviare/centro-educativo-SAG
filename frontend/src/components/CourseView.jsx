@@ -1,7 +1,9 @@
 // frontend/src/components/CourseView.jsx
-import { useEffect, useState } from "react";
-import { getCourseBlocks } from "../api";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { getCourseById, getCourseBlocks } from "../api";
 
+// Convierte URL de YouTube a embed
 const getYoutubeEmbedUrl = (url) => {
   if (!url) return "";
   try {
@@ -34,26 +36,43 @@ const getYoutubeEmbedUrl = (url) => {
   }
 };
 
-export default function CourseView({ courseId, clerkId }) {
+export default function CourseView() {
+  const { id } = useParams();
+  const [course, setCourse] = useState(null);
   const [blocks, setBlocks] = useState([]);
-  const [scores, setScores] = useState({}); // para guardar resultados de quizzes
+  const [loading, setLoading] = useState(true);
+  const [scores, setScores] = useState({});
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const loadBlocks = async () => {
-      if (!clerkId) return;
+    const fetchData = async () => {
       try {
-        const data = await getCourseBlocks(courseId, clerkId);
-        setBlocks(Array.isArray(data.blocks) ? data.blocks : []);
+        const courseData = await getCourseById(id);
+        setCourse(courseData);
+
+        const data = await getCourseBlocks(id);
+        console.log("🧩 Datos de bloques recibidos:", data.blocks);
+        setBlocks(
+          Array.isArray(data.blocks)
+            ? data.blocks.map((b) => ({
+                ...b,
+                question: b.question || "Pregunta sin texto",
+                options: Array.isArray(b.options)
+                  ? b.options
+                  : ["Opción 1", "Opción 2"],
+              }))
+            : []
+        );
       } catch (err) {
-        console.error("❌ Error cargando bloques:", err);
+        console.error("❌ Error cargando curso:", err);
         setBlocks([]);
+      } finally {
+        setLoading(false);
       }
     };
-    if (courseId && clerkId) loadBlocks();
-  }, [courseId, clerkId]);
+    fetchData();
+  }, [id]);
 
-  // Manejar respuestas del quiz
   const handleAnswer = (blockId, selectedIndex, correctIndex) => {
     const isCorrect = selectedIndex === correctIndex;
     setScores((prev) => ({
@@ -64,7 +83,6 @@ export default function CourseView({ courseId, clerkId }) {
     setTimeout(() => setMessage(""), 1500);
   };
 
-  // Calcular nota final (simple promedio de quizzes)
   const calculateFinalScore = () => {
     const quizIds = blocks.filter((b) => b.type === "quiz").map((b) => b.id);
     if (quizIds.length === 0) return 0;
@@ -72,66 +90,81 @@ export default function CourseView({ courseId, clerkId }) {
     return ((correctCount / quizIds.length) * 100).toFixed(1);
   };
 
+  if (loading)
+    return <p className="text-gray-500 text-center">Cargando curso...</p>;
+
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-white rounded shadow">
-      <h2 className="text-2xl font-bold text-green-700 mb-4">📚 Vista del curso</h2>
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow">
+      <h1 className="text-3xl font-bold mb-4">
+        {course?.title || "Curso sin título"}
+      </h1>
+      <p className="text-gray-600 mb-6">
+        {course?.description || "Sin descripción"}
+      </p>
 
-      {(blocks || []).length === 0 && (
-        <p className="text-gray-500 text-center">No hay contenido disponible aún.</p>
-      )}
+      {(blocks || []).length === 0 ? (
+        <p className="text-gray-500 text-center">
+          No hay contenido disponible.
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {(blocks || []).map((b) => (
+            <div
+              key={b.id || Math.random()}
+              className="p-4 border rounded-xl bg-gray-50"
+            >
+              {/* Texto */}
+              {b.type === "text" && <p>{b.content || ""}</p>}
 
-      <div className="space-y-8">
-        {(blocks || []).map((block) => (
-          <div key={block.id} className="border rounded p-4 bg-gray-50">
-            {block.type === "text" && (
-              <p className="text-gray-800 whitespace-pre-wrap">{block.content}</p>
-            )}
+              {/* Imagen */}
+              {b.type === "image" && b.url && (
+                <img
+                  src={b.url}
+                  alt="Imagen del bloque"
+                  className="rounded max-h-64 object-contain"
+                />
+              )}
 
-            {block.type === "image" && block.url && (
-              <img
-                src={block.url}
-                alt="Imagen del curso"
-                className="rounded max-h-96 mx-auto object-contain"
-              />
-            )}
-
-            {block.type === "video" && block.url && (
-              <div className="flex justify-center">
+              {/* Video */}
+              {b.type === "video" && b.url && (
                 <iframe
                   className="w-full h-64 rounded"
-                  src={getYoutubeEmbedUrl(block.url)}
+                  src={getYoutubeEmbedUrl(b.url)}
                   title="Video del curso"
                   allowFullScreen
                 />
-              </div>
-            )}
+              )}
 
-            {block.type === "quiz" && (
-              <div>
-                <h3 className="font-semibold text-lg mb-2">
-                  {block.question?.trim() || "Pregunta sin texto"}
-                </h3>
-                {(block.options || []).map((opt, i) => (
-                  <button
-                    key={i}
-                    className={`block w-full text-left border p-2 rounded mb-2 hover:bg-gray-100 ${
-                      scores[block.id] !== undefined
-                        ? i === block.correct
-                          ? "bg-green-100 border-green-400"
-                          : "bg-red-50"
-                        : ""
-                    }`}
-                    onClick={() => handleAnswer(block.id, i, block.correct)}
-                    disabled={scores[block.id] !== undefined}
-                  >
-                    {opt || `Opción ${i + 1}`}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+              {/* Quiz */}
+              {b.type === "quiz" && (
+                <div>
+                  <p className="font-semibold mb-2">
+                    {b.question !== ""
+                      ? b.question
+                      : "Pregunta sin texto"}
+                  </p>
+                  {(b.options || []).map((opt, i) => (
+                    <button
+                      key={i}
+                      className={`block w-full text-left border p-2 rounded mb-2 hover:bg-gray-100 ${
+                        scores[b.id] !== undefined
+                          ? i === b.correct
+                            ? "bg-green-100 border-green-400"
+                            : "bg-red-50"
+                          : ""
+                      }`}
+                      onClick={() => handleAnswer(b.id, i, b.correct)}
+                      disabled={scores[b.id] !== undefined}
+                    >
+                      {opt !== "" ? opt : `Opción ${i + 1}`}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Resultado final */}
       {Object.keys(scores).length > 0 && (
@@ -141,7 +174,9 @@ export default function CourseView({ courseId, clerkId }) {
       )}
 
       {message && (
-        <p className="mt-3 text-center text-blue-700 font-medium transition">{message}</p>
+        <p className="mt-3 text-center text-blue-700 font-medium transition">
+          {message}
+        </p>
       )}
     </div>
   );

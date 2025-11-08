@@ -51,7 +51,43 @@ useEffect(() => {
     if (!clerkId) return;
     try {
       const data = await getCourseBlocks(courseId, clerkId);
-      setBlocks(Array.isArray(data.blocks) ? data.blocks : []); // <-- fallback
+      const normalized = Array.isArray(data.blocks)
+        ? data.blocks.map((b) => {
+            // si vienen guardados con estructura antigua (content/url) lo acomodamos
+            const base = {
+              id: b.id?.toString() || Date.now().toString(),
+              type: b.type || "text",
+            };
+
+            if (base.type === "quiz") {
+              return {
+                ...base,
+                question: (b.question ?? b.content?.question ?? "") || "",
+                options: Array.isArray(b.options)
+                  ? b.options
+                  : Array.isArray(b.content?.options)
+                    ? b.content.options
+                    : ["", ""],
+                correct: typeof b.correct === "number" ? b.correct : (b.content?.correct ?? 0),
+              };
+            }
+
+            if (base.type === "image" || base.type === "video") {
+              return {
+                ...base,
+                url: b.url ?? b.content?.url ?? "",
+              };
+            }
+
+            // texto u otros
+            return {
+              ...base,
+              content: b.content ?? (typeof b.content === "object" ? b.content.content ?? "" : b.content) ?? "",
+            };
+          })
+        : [];
+
+      setBlocks(normalized);
     } catch (err) {
       console.error("❌ Error cargando bloques:", err);
       setBlocks([]); // fallback seguro
@@ -59,6 +95,7 @@ useEffect(() => {
   };
   if (courseId && clerkId) loadBlocks();
 }, [courseId, clerkId]);
+
 
   // Guardar bloques automáticamente
   const persistBlocks = async (newBlocks) => {
@@ -178,67 +215,48 @@ const removeBlock = (index) => {
 
 
             {block.type === "quiz" && (
-              <div>
-                <input
-                  type="text"
-                  className="w-full border p-2 rounded mb-2"
-                  placeholder="Pregunta del quiz"
-                  value={block.question || ""}
-                  onChange={(e) => {
-                    const updated = { ...block, question: e.target.value };
-                    const newBlocks = [...blocks];
-                    newBlocks[index] = updated;
-                    setBlocks(newBlocks);
-                    persistBlocks(newBlocks);
-                  }}
-                />
+  <div>
+    <input
+      type="text"
+      className="w-full border p-2 rounded mb-2"
+      placeholder="Pregunta del quiz"
+      value={block.question || ""}
+      onChange={(e) => updateBlock(index, "question", e.target.value)}
+    />
 
-                {(block.options || []).map((opt, i) => (
-                  <div key={i} className="flex items-center gap-2 mb-1">
-                    <input
-                      type="radio"
-                      name={`correct-${index}`}
-                      checked={block.correct === i}
-                      onChange={() => {
-                        const updated = { ...block, correct: i };
-                        const newBlocks = [...blocks];
-                        newBlocks[index] = updated;
-                        setBlocks(newBlocks);
-                        persistBlocks(newBlocks);
-                      }}
-                    />
-                    <input
-                      type="text"
-                      className="border p-1 rounded flex-1"
-                      placeholder={`Opción ${i + 1}`}
-                      value={opt}
-                      onChange={(e) => {
-                        const newOpts = [...(block.options || [])];
-                        newOpts[i] = e.target.value;
-                        const updated = { ...block, options: newOpts };
-                        const newBlocks = [...blocks];
-                        newBlocks[index] = updated;
-                        setBlocks(newBlocks);
-                        persistBlocks(newBlocks);
-                      }}
-                    />
-                  </div>
-                ))}
+    {(block.options || []).map((opt, i) => (
+      <div key={i} className="flex items-center gap-2 mb-1">
+        <input
+          type="radio"
+          name={`correct-${block.id}`}
+          checked={block.correct === i}
+          onChange={() => updateBlock(index, "correct", i)}
+        />
+        <input
+          type="text"
+          className="border p-1 rounded flex-1"
+          placeholder={`Opción ${i + 1}`}
+          value={opt}
+          onChange={(e) => {
+            const newOpts = [...(block.options || [])];
+            newOpts[i] = e.target.value;
+            updateBlock(index, "options", newOpts);
+          }}
+        />
+      </div>
+    ))}
 
-                <button
-                  className="mt-1 text-sm text-blue-600 underline"
-                  onClick={() => {
-                    const updated = { ...block, options: [...(block.options || []), ""] };
-                    const newBlocks = [...blocks];
-                    newBlocks[index] = updated;
-                    setBlocks(newBlocks);
-                    persistBlocks(newBlocks);
-                  }}
-                >
-                  + Añadir opción
-                </button>
-              </div>
-            )}
+    <button
+      className="mt-1 text-sm text-blue-600 underline"
+      onClick={() => {
+        const newOpts = [...(block.options || []), ""];
+        updateBlock(index, "options", newOpts);
+      }}
+    >
+      + Añadir opción
+    </button>
+  </div>
+)}
 
           </div>
         ))}

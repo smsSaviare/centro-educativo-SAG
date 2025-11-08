@@ -152,7 +152,7 @@ exports.deleteCourse = async (req, res) => {
 };
 
 /**
- * 📘 Obtener bloques de contenido del curso (corregido)
+ * 📘 Obtener bloques de contenido del curso (versión mejorada)
  */
 exports.getCourseBlocks = async (req, res) => {
   try {
@@ -163,20 +163,24 @@ exports.getCourseBlocks = async (req, res) => {
       order: [["id", "ASC"]],
     });
 
-    // 🔹 Parsear y limpiar el contenido al enviar al frontend
     const formatted = blocks.map((b) => {
-      let parsed = {};
-      try {
-        parsed = JSON.parse(b.content || "{}");
-      } catch (e) {
-        parsed = { content: b.content || "" };
+      const data = b.content || {};
+
+      if (b.type === "quiz") {
+        return {
+          id: b.id,
+          type: "quiz",
+          question: data.question || "",
+          options: data.options || [],
+          correct: data.correct ?? 0,
+        };
       }
 
       return {
         id: b.id,
-        type: b.type || parsed.type || "text",
-        content: parsed.content || "",
-        url: parsed.url || "",
+        type: b.type,
+        content: data.text || "",
+        url: data.url || "",
       };
     });
 
@@ -189,50 +193,54 @@ exports.getCourseBlocks = async (req, res) => {
 };
 
 /**
- * 💾 Guardar bloques de contenido del curso (corregido)
+ * 💾 Guardar bloques de contenido del curso (versión mejorada)
  */
 exports.saveCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { clerkId, blocks } = req.body;
 
-    if (!courseId || !clerkId) {
+    if (!courseId || !clerkId)
       return res.status(400).json({ error: "Faltan datos requeridos" });
-    }
-    if (!Array.isArray(blocks)) {
+
+    if (!Array.isArray(blocks))
       return res.status(400).json({ error: "Blocks debe ser un array" });
-    }
 
     const course = await Course.findOne({
       where: { id: courseId, creatorClerkId: clerkId },
     });
-    if (!course) {
-      return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
-    }
 
-    // 🔹 Borrar los bloques anteriores
+    if (!course)
+      return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
+
+    // 🔹 Eliminar bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
 
-    // 🔹 Crear nuevos bloques
-    const savedBlocks = [];
-    for (const block of blocks) {
-      const normalized = {
-        type: block.type || "text",
-        content: block.content?.content || block.content || "",
-        url: block.content?.url || block.url || "",
-      };
+    // 🔹 Guardar nuevos bloques
+    const savedBlocks = await Promise.all(
+      blocks.map(async (block) => {
+        let contentData = {};
 
-      const newBlock = await CourseBlock.create({
-        courseId,
-        type: normalized.type,
-        content: JSON.stringify({
-          content: normalized.content,
-          url: normalized.url,
-        }),
-      });
+        if (block.type === "quiz") {
+          contentData = {
+            question: block.question || "",
+            options: block.options || [],
+            correct: block.correct ?? 0,
+          };
+        } else {
+          contentData = {
+            text: block.content || "",
+            url: block.url || "",
+          };
+        }
 
-      savedBlocks.push(newBlock);
-    }
+        return CourseBlock.create({
+          courseId,
+          type: block.type,
+          content: contentData,
+        });
+      })
+    );
 
     console.log("✅ Bloques guardados correctamente:", savedBlocks);
     return res.json({
