@@ -15,9 +15,17 @@ export default function CourseView() {
         const courseData = await getCourseById(id);
         setCourse(courseData);
 
-        const data = await getCourseBlocks(id);
-        // Siempre aseguramos que blocks sea un array
-        setBlocks(Array.isArray(data.blocks) ? data.blocks : []);
+    const data = await getCourseBlocks(id);
+    setBlocks(
+      Array.isArray(data.blocks)
+        ? data.blocks.map(b => ({
+            ...b,
+            question: b.question || "Pregunta sin texto",
+            options: Array.isArray(b.options) ? b.options : ["Opción 1", "Opción 2"]
+          }))
+        : []
+    );
+
       } catch (err) {
         console.error("❌ Error cargando curso:", err);
         setBlocks([]); // fallback por si hay error
