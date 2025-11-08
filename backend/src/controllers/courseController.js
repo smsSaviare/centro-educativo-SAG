@@ -2,6 +2,7 @@
 const { Course, CourseBlock } = require("../models/CourseModel");
 const Enrollment = require("../models/EnrollmentModel");
 const User = require("../models/UserModel");
+const QuizResult = require("../models/QuizResultModel");
 
 /**
  * 🆕 Crear curso
@@ -191,6 +192,47 @@ exports.getCourseBlocks = async (req, res) => {
     return res.status(500).json({ error: "Error obteniendo contenido del curso" });
   }
 };
+
+// 💾 Guardar nota del quiz
+exports.saveQuizResult = async (req, res) => {
+  try {
+    const { clerkId, courseId, quizBlockId, score, answers } = req.body;
+
+    if (!clerkId || !courseId || !quizBlockId)
+      return res.status(400).json({ error: "Faltan datos requeridos" });
+
+    const result = await QuizResult.create({
+      clerkId,
+      courseId,
+      quizBlockId,
+      score,
+      answers,
+    });
+
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error("❌ Error guardando resultado del quiz:", err);
+    res.status(500).json({ error: "Error guardando resultado del quiz" });
+  }
+};
+
+// 📊 Obtener resultados del curso
+exports.getQuizResults = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { clerkId } = req.query;
+
+    const where = { courseId };
+    if (clerkId) where.clerkId = clerkId; // si es estudiante
+
+    const results = await QuizResult.findAll({ where });
+    res.json(results);
+  } catch (err) {
+    console.error("❌ Error obteniendo resultados:", err);
+    res.status(500).json({ error: "Error obteniendo resultados" });
+  }
+};
+
 
 /**
  * 💾 Guardar bloques de contenido del curso (versión mejorada)

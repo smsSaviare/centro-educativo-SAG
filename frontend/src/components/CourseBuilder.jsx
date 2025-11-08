@@ -164,7 +164,10 @@ const removeBlock = (index) => {
 
       {/* Render bloques */}
       <div className="space-y-6">
-        {(blocks || []).map((block, index) => (
+        {[...(blocks || [])]
+          .sort((a, b) => parseInt(a.id) - parseInt(b.id)) // 🔥 asegura orden por id ascendente
+          .map((block, index) => (
+
           <div key={block.id} className="border rounded p-4 relative bg-gray-50 hover:shadow transition">
             <button
               onClick={() => removeBlock(index)}
