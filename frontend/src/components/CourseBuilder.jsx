@@ -169,7 +169,7 @@ const removeBlock = (index) => {
                   value={block.question}
                   onChange={(e) => updateBlock(index, "question", e.target.value)}
                 />
-                {block.options.map((opt, i) => (
+                {(block.options || []).map((opt, i) => (
                   <div key={i} className="flex items-center gap-2 mb-1">
                     <input
                       type="radio"
@@ -183,7 +183,7 @@ const removeBlock = (index) => {
                       placeholder={`Opción ${i + 1}`}
                       value={opt}
                       onChange={(e) => {
-                        const newOpts = [...block.options];
+                        const newOpts = [...(block.options || [])];
                         newOpts[i] = e.target.value;
                         updateBlock(index, "options", newOpts);
                       }}
