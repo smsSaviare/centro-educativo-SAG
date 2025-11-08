@@ -91,11 +91,21 @@ const newBlock =
 };
 
 const updateBlock = (index, field, value) => {
-  const newBlocks = [...(blocks || [])]; // <-- fallback a []
-  newBlocks[index] = { ...newBlocks[index], [field]: value };
+  const newBlocks = [...(blocks || [])];
+  const currentBlock = newBlocks[index];
+
+  // Asegurar que no se pierdan los datos anteriores
+  newBlocks[index] = {
+    ...currentBlock,
+    [field]: value,
+  };
+
   setBlocks(newBlocks);
+
+  // Guardar en el backend el nuevo arreglo completo
   persistBlocks(newBlocks);
 };
+
 
 const removeBlock = (index) => {
   const newBlocks = (blocks || []).filter((_, i) => i !== index); // <-- fallback a []
@@ -173,16 +183,29 @@ const removeBlock = (index) => {
                   type="text"
                   className="w-full border p-2 rounded mb-2"
                   placeholder="Pregunta del quiz"
-                  value={block.question}
-                  onChange={(e) => updateBlock(index, "question", e.target.value)}
+                  value={block.question || ""}
+                  onChange={(e) => {
+                    const updated = { ...block, question: e.target.value };
+                    const newBlocks = [...blocks];
+                    newBlocks[index] = updated;
+                    setBlocks(newBlocks);
+                    persistBlocks(newBlocks);
+                  }}
                 />
+
                 {(block.options || []).map((opt, i) => (
                   <div key={i} className="flex items-center gap-2 mb-1">
                     <input
                       type="radio"
                       name={`correct-${index}`}
                       checked={block.correct === i}
-                      onChange={() => updateBlock(index, "correct", i)}
+                      onChange={() => {
+                        const updated = { ...block, correct: i };
+                        const newBlocks = [...blocks];
+                        newBlocks[index] = updated;
+                        setBlocks(newBlocks);
+                        persistBlocks(newBlocks);
+                      }}
                     />
                     <input
                       type="text"
@@ -192,19 +215,31 @@ const removeBlock = (index) => {
                       onChange={(e) => {
                         const newOpts = [...(block.options || [])];
                         newOpts[i] = e.target.value;
-                        updateBlock(index, "options", newOpts);
+                        const updated = { ...block, options: newOpts };
+                        const newBlocks = [...blocks];
+                        newBlocks[index] = updated;
+                        setBlocks(newBlocks);
+                        persistBlocks(newBlocks);
                       }}
                     />
                   </div>
                 ))}
+
                 <button
                   className="mt-1 text-sm text-blue-600 underline"
-                  onClick={() => updateBlock(index, "options", [...block.options, ""])}
+                  onClick={() => {
+                    const updated = { ...block, options: [...(block.options || []), ""] };
+                    const newBlocks = [...blocks];
+                    newBlocks[index] = updated;
+                    setBlocks(newBlocks);
+                    persistBlocks(newBlocks);
+                  }}
                 >
                   + Añadir opción
                 </button>
               </div>
             )}
+
           </div>
         ))}
       </div>
