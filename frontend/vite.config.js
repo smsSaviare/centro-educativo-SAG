@@ -2,14 +2,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// 🧠 Detecta si el build es para GitHub Pages
-const isGitHubPages = process.env.GITHUB_PAGES === "true";
+// 🧠 Detecta automáticamente si estás en producción (GitHub Pages)
+const isProduction = process.env.NODE_ENV === "production";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // ⚙️ Base URL (solo para despliegue en GitHub Pages)
-  base: isGitHubPages ? "/centro-educativo-SAG/" : "/",
+  // 👇 Importante: base debe ser exactamente el nombre del repo en GitHub Pages
+  base: isProduction ? "/centro-educativo-SAG/" : "/",
   build: {
     outDir: "dist",
   },
