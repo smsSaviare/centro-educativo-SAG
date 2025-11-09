@@ -12,26 +12,36 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("❌ Falta la variable VITE_CLERK_PUBLISHABLE_KEY en .env");
 }
 
-// ✅ Base URL para GitHub Pages (sin forzar redirección completa)
-const BASE_URL = "https://smssaviare.github.io/centro-educativo-SAG/#";
+// ✅ URL completa de tu app en GitHub Pages
+const FRONTEND_URL = "https://smssaviare.github.io/centro-educativo-SAG";
 
-// 🚀 Render principal
+// 🚀 Render principal con logs detallados
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
       <ClerkProvider
         publishableKey={PUBLISHABLE_KEY}
-        // 🚦 Corrección de navegación para evitar redirecciones automáticas
-        navigate={(to) => {
-          console.log("🔁 Clerk intenta navegar a:", to);
+        // 👇 Fuerza dominio base correcto para handshake y cookies
+        proxyUrl={`${FRONTEND_URL}/clerk`}
+        // afterSignIn / SignUp / SignOut redirigen dentro del hash router
+        afterSignInUrl="/"
+        afterSignUpUrl="/"
+        afterSignOutUrl="/"
+        // 🔍 Logs adicionales para depurar navegación de Clerk
+        navigate={(to, opts) => {
+          console.log("📍 Clerk navigation intent:", to, opts);
 
-          // 🚫 Evita que Clerk fuerce volver al home automáticamente
-          if (!to || to === "/" || to === "#/") {
-            console.log("🧭 Ignorando navegación automática al home");
+          if (!to) {
+            console.warn("⚠️ Clerk tried to navigate with empty path");
             return;
           }
 
-          // ✅ Mantiene el comportamiento del HashRouter
+          if (to.startsWith("http")) {
+            console.warn("🌐 External redirect:", to);
+            window.location.href = to;
+            return;
+          }
+
           if (to.startsWith("#")) {
             window.location.hash = to;
           } else if (to.startsWith("/")) {
@@ -39,6 +49,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           } else {
             window.location.hash = `#/${to}`;
           }
+
+          console.log("✅ Hash updated to:", window.location.hash);
         }}
       >
         <App />
