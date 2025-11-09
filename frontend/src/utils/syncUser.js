@@ -1,3 +1,4 @@
+// frontend/src/utils/syncUser.js
 export async function syncUserToBackend(user) {
   try {
     const response = await fetch("https://<TU_BACKEND>.onrender.com/sync-user", {

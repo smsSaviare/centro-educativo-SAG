@@ -1,4 +1,4 @@
-// src/components/Login.jsx
+// frontend/src/components/Login.jsx
 import { useState } from "react";
 import { loginUser } from "../api";
 import { useNavigate, Link } from "react-router-dom";

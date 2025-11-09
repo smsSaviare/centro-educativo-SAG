@@ -1,8 +1,4 @@
-// --------------------------------------------------------
-// 🛠️ SCRIPT PARA CREAR LAS TABLAS DE LA BASE DE DATOS
-// --------------------------------------------------------
-// Este script se usa una sola vez al principio para generar las tablas
-// definidas en los modelos (como User.js).
+// backend/src/seed/sync.js
 
 const sequelize = require('../config/database');
 const User = require('../models/UserModel');

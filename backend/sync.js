@@ -1,3 +1,4 @@
+// backend/sync.js
 require("dotenv").config();
 const sequelize = require("./src/config/database");
 const User = require("./src/models/User");

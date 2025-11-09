@@ -1,3 +1,4 @@
+// frontend/assets/index-BnqWwFJI.js
 (function(){const r=document.createElement("link").relList;if(r&&r.supports&&r.supports("modulepreload"))return;for(const h of document.querySelectorAll('link[rel="modulepreload"]'))o(h);new MutationObserver(h=>{for(const g of h)if(g.type==="childList")for(const T of g.addedNodes)T.tagName==="LINK"&&T.rel==="modulepreload"&&o(T)}).observe(document,{childList:!0,subtree:!0});function s(h){const g={};return h.integrity&&(g.integrity=h.integrity),h.referrerPolicy&&(g.referrerPolicy=h.referrerPolicy),h.crossOrigin==="use-credentials"?g.credentials="include":h.crossOrigin==="anonymous"?g.credentials="omit":g.credentials="same-origin",g}function o(h){if(h.ep)return;h.ep=!0;const g=s(h);fetch(h.href,g)}})();function ih(f){return f&&f.__esModule&&Object.prototype.hasOwnProperty.call(f,"default")?f.default:f}var Mc={exports:{}},Ru={};/**
  * @license React
  * react-jsx-runtime.production.js

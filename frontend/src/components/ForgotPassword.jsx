@@ -1,4 +1,4 @@
-// src/components/ForgotPassword.jsx
+// frontend/src/components/ForgotPassword.jsx
 import { useState } from "react";
 import { forgotPassword } from "../api";
 import { useNavigate } from "react-router-dom";

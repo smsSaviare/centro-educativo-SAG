@@ -1,3 +1,4 @@
+// backend/src/models/QuizResultModel.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 

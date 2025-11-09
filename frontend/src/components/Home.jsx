@@ -1,4 +1,4 @@
-// src/components/Home.jsx
+// frontend/src/components/Home.jsx
 import { motion } from "framer-motion";
 import avionFondo from "../assets/avion.jpg";
 import avionAnimado from "../assets/avion.png";

@@ -1,4 +1,4 @@
-// src/components/Dashboard.jsx
+// frontend/src/components/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { useUser, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import { getMyCourses } from "../api";

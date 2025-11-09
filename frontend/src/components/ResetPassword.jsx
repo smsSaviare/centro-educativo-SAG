@@ -1,4 +1,4 @@
-// src/components/ResetPassword.jsx
+// frontend/src/components/ResetPassword.jsx
 import { useState, useEffect } from "react";
 import { resetPassword } from "../api";
 import { useNavigate, useLocation } from "react-router-dom";

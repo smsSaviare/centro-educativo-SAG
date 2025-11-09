@@ -1,4 +1,4 @@
-// src/components/Footer.jsx
+// frontend/src/components/Footer.jsx
 import { motion } from "framer-motion";
 import { Mail, Facebook, Instagram, Linkedin, Youtube } from "lucide-react";
 

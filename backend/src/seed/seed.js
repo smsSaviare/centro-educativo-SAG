@@ -1,8 +1,4 @@
-// --------------------------------------------------------
-// 🌱 SCRIPT PARA INSERTAR USUARIO INICIAL (ADMIN)
-// --------------------------------------------------------
-// Crea un usuario administrador para pruebas.
-
+// backend/src/seed/seed.js
 const bcrypt = require('bcryptjs');
 const sequelize = require('../config/database');
 const User = require('../models/UserModel');

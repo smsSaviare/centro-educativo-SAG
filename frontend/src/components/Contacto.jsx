@@ -1,3 +1,4 @@
+// frontend/src/components/Contacto.jsx
 export default function Contacto() {
   return (
     <div className="p-6 min-h-screen">

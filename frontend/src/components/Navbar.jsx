@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx
+// frontend/src/components/Navbar.jsx
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import {

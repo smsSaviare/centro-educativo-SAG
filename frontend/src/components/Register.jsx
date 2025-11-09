@@ -1,4 +1,4 @@
-// src/components/Register.jsx
+// frontend/src/components/Register.jsx
 import { useState } from "react";
 import { registerUser } from "../api";
 import { useNavigate } from "react-router-dom";
