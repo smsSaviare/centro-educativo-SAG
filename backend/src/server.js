@@ -9,7 +9,7 @@ const userRoutes = require("./routes/userRoutes");
 const courseRoutes = require("./routes/courses");
 const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/clerk-sdk-node");
 
-// Inicializar Express
+// 🔹 Inicializar Express
 const app = express();
 
 // ✅ CORS robusto para producción y desarrollo
@@ -20,47 +20,49 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true); // permitir Postman, etc.
-      if (allowedOrigins.indexOf(origin) === -1) {
-        const msg = `CORS bloquea el origen ${origin}`;
-        return callback(new Error(msg), false);
-      }
-      return callback(null, true);
-    },
+    origin: [
+      "https://smssaviare.github.io",
+      "http://localhost:5173",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
+      "X-Clerk-Id",
+      "X-Clerk-Signature",
+      "X-Clerk-Webhook-Id",
+      "X-Clerk-Webhook-Signature",
+      "x-clerk-id",
       "x-clerk-signature",
       "x-clerk-webhook-id",
       "x-clerk-webhook-signature",
     ],
+    exposedHeaders: ["Authorization"],
     credentials: true,
+    preflightContinue: false,
     optionsSuccessStatus: 200,
   })
 );
 
-// Middleware base
+// 🔹 Middleware para parsear JSON
 app.use(express.json());
 
-// Log de requests
+// 🔹 Middleware opcional de logging (útil para depuración)
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin}`);
   next();
 });
 
-// Rutas
+// 🔹 Rutas
 app.use("/api/users", userRoutes);
 app.use("/api/webhooks", clerkWebhookRouter);
-app.use("/courses", courseRoutes);
+app.use("/courses", courseRoutes); // <-- aquí se monta el router
 
-// 🔹 Sincronizar usuario Clerk ↔ BD
+// 🔹 Endpoint para sincronizar usuario actual de Clerk
 app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   try {
     const { userId } = req.auth;
-    if (!userId)
-      return res.status(401).json({ success: false, error: "No autenticado" });
+    if (!userId) return res.status(401).json({ success: false, error: "Usuario no autenticado" });
 
     const user = await clerkClient.users.getUser(userId);
     const email = user.emailAddresses?.[0]?.emailAddress || "sin_email@correo.com";
@@ -76,7 +78,7 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
 
     res.json({
       success: true,
-      message: created ? "Usuario creado" : "Usuario actualizado",
+      message: created ? "Usuario creado correctamente" : "Usuario actualizado",
       user: dbUser,
     });
   } catch (error) {
@@ -85,12 +87,12 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   }
 });
 
-// Ruta de prueba
+// 🔹 Ruta de prueba
 app.get("/", (req, res) => {
   res.json({ mensaje: "🚀 API Saviare funcionando correctamente con Clerk" });
 });
 
-// Iniciar servidor
+// 🔹 Sincronizar DB y crear administrador por defecto
 async function startServer() {
   try {
     await sequelize.sync({ alter: true });
@@ -108,15 +110,13 @@ async function startServer() {
       },
     });
 
-    if (created) console.log("✅ Usuario admin creado");
-    else console.log("ℹ️ Usuario admin ya existía");
+    if (created) console.log("✅ Usuario administrador creado");
+    else console.log("ℹ️ Usuario administrador ya existía");
 
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () =>
-      console.log(`🚀 Servidor en línea en puerto ${PORT}`)
-    );
+    app.listen(PORT, () => console.log(`🚀 Servidor en línea en puerto ${PORT}`));
   } catch (err) {
-    console.error("❌ Error al iniciar servidor:", err);
+    console.error("❌ Error al iniciar el servidor:", err);
   }
 }
 
