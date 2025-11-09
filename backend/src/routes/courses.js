@@ -12,8 +12,6 @@ const {
   saveCourseBlocks,
 } = require("../controllers/courseController");
 
-const { Course } = require("../models/CourseModel");
-
 // Crear curso
 router.post("/", createCourse);
 
@@ -22,13 +20,6 @@ router.get("/my-courses", getMyCourses);
 
 // Obtener lista de estudiantes
 router.get("/students", getStudents);
-
-// Obtener un curso por ID
-router.get("/:courseId", async (req, res) => {
-  const course = await Course.findByPk(req.params.courseId);
-  if (!course) return res.status(404).json({ error: "Curso no encontrado" });
-  res.json(course);
-});
 
 // Asignar estudiante
 router.post("/:courseId/assign", assignStudent);
@@ -39,7 +30,19 @@ router.put("/:courseId", updateCourse);
 // Eliminar curso
 router.delete("/:courseId", deleteCourse);
 
-// Bloques de contenido (mantén solo estas dos líneas)
+// Obtener curso por ID
+router.get("/:courseId", async (req, res) => {
+  try {
+    const { Course } = require("../models/CourseModel");
+    const course = await Course.findByPk(req.params.courseId);
+    if (!course) return res.status(404).json({ error: "Curso no encontrado" });
+    res.json(course);
+  } catch (error) {
+    res.status(500).json({ error: "Error al obtener el curso" });
+  }
+});
+
+// Bloques de contenido
 router.get("/:courseId/blocks", getCourseBlocks);
 router.put("/:courseId/blocks", saveCourseBlocks);
 

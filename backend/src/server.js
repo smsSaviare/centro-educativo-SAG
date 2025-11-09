@@ -7,9 +7,9 @@ const User = require("./models/UserModel");
 const clerkWebhookRouter = require("./routes/clerkWebhook");
 const userRoutes = require("./routes/userRoutes");
 const courseRoutes = require("./routes/courses");
-const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/clerk-sdk-node");
+const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/backend");
 
-// 🔹 Inicializar Express
+// Inicializar Express
 const app = express();
 
 // ✅ CORS robusto para producción y desarrollo
@@ -20,20 +20,18 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function(origin, callback){
-      // permitir requests sin origin (como herramientas o postman)
-      if(!origin) return callback(null, true);
-      if(allowedOrigins.indexOf(origin) === -1){
-        const msg = `La política CORS bloquea el origen ${origin}`;
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // permitir Postman, etc.
+      if (allowedOrigins.indexOf(origin) === -1) {
+        const msg = `CORS bloquea el origen ${origin}`;
         return callback(new Error(msg), false);
       }
       return callback(null, true);
     },
-    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
-      "x-clerk-id",
       "x-clerk-signature",
       "x-clerk-webhook-id",
       "x-clerk-webhook-signature",
@@ -43,26 +41,26 @@ app.use(
   })
 );
 
-
-// 🔹 Middleware para parsear JSON
+// Middleware base
 app.use(express.json());
 
-// 🔹 Middleware opcional de logging (útil para depuración)
+// Log de requests
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url} - Origin: ${req.headers.origin}`);
   next();
 });
 
-// 🔹 Rutas
+// Rutas
 app.use("/api/users", userRoutes);
 app.use("/api/webhooks", clerkWebhookRouter);
-app.use("/courses", courseRoutes); // <-- aquí se monta el router
+app.use("/courses", courseRoutes);
 
-// 🔹 Endpoint para sincronizar usuario actual de Clerk
+// 🔹 Sincronizar usuario Clerk ↔ BD
 app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   try {
     const { userId } = req.auth;
-    if (!userId) return res.status(401).json({ success: false, error: "Usuario no autenticado" });
+    if (!userId)
+      return res.status(401).json({ success: false, error: "No autenticado" });
 
     const user = await clerkClient.users.getUser(userId);
     const email = user.emailAddresses?.[0]?.emailAddress || "sin_email@correo.com";
@@ -78,7 +76,7 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
 
     res.json({
       success: true,
-      message: created ? "Usuario creado correctamente" : "Usuario actualizado",
+      message: created ? "Usuario creado" : "Usuario actualizado",
       user: dbUser,
     });
   } catch (error) {
@@ -87,12 +85,12 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   }
 });
 
-// 🔹 Ruta de prueba
+// Ruta de prueba
 app.get("/", (req, res) => {
   res.json({ mensaje: "🚀 API Saviare funcionando correctamente con Clerk" });
 });
 
-// 🔹 Sincronizar DB y crear administrador por defecto
+// Iniciar servidor
 async function startServer() {
   try {
     await sequelize.sync({ alter: true });
@@ -110,13 +108,15 @@ async function startServer() {
       },
     });
 
-    if (created) console.log("✅ Usuario administrador creado");
-    else console.log("ℹ️ Usuario administrador ya existía");
+    if (created) console.log("✅ Usuario admin creado");
+    else console.log("ℹ️ Usuario admin ya existía");
 
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => console.log(`🚀 Servidor en línea en puerto ${PORT}`));
+    app.listen(PORT, () =>
+      console.log(`🚀 Servidor en línea en puerto ${PORT}`)
+    );
   } catch (err) {
-    console.error("❌ Error al iniciar el servidor:", err);
+    console.error("❌ Error al iniciar servidor:", err);
   }
 }
 
