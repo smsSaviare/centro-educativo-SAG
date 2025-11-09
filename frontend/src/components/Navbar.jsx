@@ -42,14 +42,13 @@ export default function Navbar() {
   };
 
   // ✅ Navegación segura para GitHub Pages (HashRouter)
-  const goTo = (path) => {
-    if (path.startsWith("#")) {
-      window.location.hash = path;
-    } else {
-      window.location.hash = `#${path}`;
-    }
-    setMenuOpen(false);
-  };
+    const goTo = (path) => {
+      const newHash = path.startsWith("#") ? path : `#${path}`;
+      if (window.location.hash === newHash) return; // evita recarga o bucle
+      window.location.hash = newHash;
+      setMenuOpen(false);
+    };
+
 
   const NavLinks = () => (
     <>
