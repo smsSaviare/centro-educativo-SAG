@@ -12,26 +12,37 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("❌ Falta la variable VITE_CLERK_PUBLISHABLE_KEY en .env");
 }
 
-// ✅ Base URL para GitHub Pages
-const BASE_URL = "https://smssaviare.github.io/centro-educativo-SAG/#";
+// 🚀 Interceptor global para evitar handshake inválido
+// Clerk intenta llamar a "?__clerk_handshake=..." en GitHub Pages → 404.
+// Esto bloquea esa petición antes de que cause el reset.
+(function interceptClerkHandshake() {
+  const originalFetch = window.fetch;
+  window.fetch = async (...args) => {
+    const url = args[0];
+    if (typeof url === "string" && url.includes("__clerk_handshake")) {
+      console.warn("🛑 Clerk handshake bloqueado para evitar redirección");
+      return new Response("OK", { status: 200 });
+    }
+    return originalFetch(...args);
+  };
+})();
 
-// 🚀 Render principal
+// 🚦 Render principal
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
       <ClerkProvider
         publishableKey={PUBLISHABLE_KEY}
-        // 🚦 Corrige navegación del hash router
         navigate={(to) => {
           console.log("🔁 Clerk intenta navegar a:", to);
 
-          // 🚫 Evita que Clerk fuerce volver al home automáticamente
+          // 🚫 Evita redirección automática al home
           if (!to || to === "/" || to === "#/") {
             console.log("🧭 Ignorando navegación automática al home");
             return;
           }
 
-          // ✅ Mantiene el comportamiento del HashRouter
+          // ✅ Mantiene navegación correcta en HashRouter
           if (to.startsWith("#")) {
             window.location.hash = to;
           } else if (to.startsWith("/")) {
@@ -40,15 +51,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             window.location.hash = `#/${to}`;
           }
         }}
-        // ⚙️ Workaround: desactiva el refresco de sesión automático
-        appearance={{
-          variables: {
-            colorPrimary: "#007bff",
-          },
-        }}
         options={{
-          // 🔒 Clerk a veces intenta validar handshake al dominio raíz.
-          // Esto fuerza a mantener la sesión mientras no haya un logout manual.
           syncSessionWithTab: false,
           sessionExpiredToast: false,
           telemetry: false,
