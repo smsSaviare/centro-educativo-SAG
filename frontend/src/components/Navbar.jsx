@@ -33,7 +33,8 @@ export default function Navbar() {
       await signOut({
         redirectUrl: "https://smssaviare.github.io/centro-educativo-SAG/#/",
       });
-      setTimeout(() => window.location.reload(), 500);
+      setTimeout(() => (window.location.hash = "#/"), 300);
+
     } catch (err) {
       console.error("Error cerrando sesión:", err);
       window.location.href =
