@@ -1,11 +1,11 @@
-// frontend/src/App.jsx
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+//frontend/src/App.jsx 
+import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./components/Home";
 import Dashboard from "./components/Dashboard";
 import CourseView from "./components/CourseView";
 import CourseEditor from "./components/CourseEditor";
-import Contacto from "./components/Contacto";
+import Contacto from "./components/Contacto"; // ✅ correctamente importado
 import {
   SignedIn,
   SignedOut,
@@ -13,7 +13,7 @@ import {
   useUser,
   useAuth,
 } from "@clerk/clerk-react";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 /**
  * 🔄 Sincroniza el usuario de Clerk con el backend
@@ -62,25 +62,10 @@ function RequireRole({ user, role, children }) {
 function App() {
   const { user, isSignedIn } = useUser();
   const { getToken } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const initialized = useRef(false); // 🧠 Evita re-sync innecesarios
 
-  // 🔹 Sincronizar usuario solo una vez por sesión
   useEffect(() => {
-    if (isSignedIn && user && !initialized.current) {
-      initialized.current = true;
-      syncUserToBackend(user, getToken);
-    }
+    if (isSignedIn && user) syncUserToBackend(user, getToken);
   }, [isSignedIn, user, getToken]);
-
-  // 🔹 Corrige el bug del error 404 al registrarse
-  // Si el usuario acaba de iniciar sesión desde Clerk, lo redirige a /dashboard
-  useEffect(() => {
-    if (isSignedIn && location.pathname === "/sign-up" || location.pathname === "/sign-in") {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isSignedIn, location.pathname, navigate]);
 
   return (
     <>
@@ -93,7 +78,7 @@ function App() {
         {/* 📞 Página de contacto */}
         <Route path="/contacto" element={<Contacto />} />
 
-        {/* 📚 Cursos */}
+        {/* 📚 Cursos disponibles o del usuario */}
         <Route
           path="/courses"
           element={
@@ -111,7 +96,7 @@ function App() {
           }
         />
 
-        {/* 📊 Panel docente o de usuario */}
+        {/* 📊 Panel docente */}
         <Route
           path="/dashboard"
           element={

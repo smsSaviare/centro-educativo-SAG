@@ -20,15 +20,16 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
+    origin: function(origin, callback){
+      // permitir requests sin origin (como herramientas o postman)
+      if(!origin) return callback(null, true);
+      if(allowedOrigins.indexOf(origin) === -1){
         const msg = `La política CORS bloquea el origen ${origin}`;
         return callback(new Error(msg), false);
       }
       return callback(null, true);
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET","POST","PUT","DELETE","OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
@@ -42,6 +43,7 @@ app.use(
   })
 );
 
+
 // 🔹 Middleware para parsear JSON
 app.use(express.json());
 
@@ -51,17 +53,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🔹 Rutas principales
+// 🔹 Rutas
 app.use("/api/users", userRoutes);
 app.use("/api/webhooks", clerkWebhookRouter);
-app.use("/api/courses", courseRoutes); // 🔄 coherente con app.js
+app.use("/courses", courseRoutes); // <-- aquí se monta el router
 
 // 🔹 Endpoint para sincronizar usuario actual de Clerk
 app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
   try {
     const { userId } = req.auth;
-    if (!userId)
-      return res.status(401).json({ success: false, error: "Usuario no autenticado" });
+    if (!userId) return res.status(401).json({ success: false, error: "Usuario no autenticado" });
 
     const user = await clerkClient.users.getUser(userId);
     const email = user.emailAddresses?.[0]?.emailAddress || "sin_email@correo.com";
