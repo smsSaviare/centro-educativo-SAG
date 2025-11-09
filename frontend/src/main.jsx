@@ -12,7 +12,7 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("❌ Falta la variable VITE_CLERK_PUBLISHABLE_KEY en .env");
 }
 
-// ✅ Base URL para GitHub Pages
+// ✅ Base URL para GitHub Pages (sin forzar redirección completa)
 const BASE_URL = "https://smssaviare.github.io/centro-educativo-SAG/#";
 
 // 🚀 Render principal
@@ -21,19 +21,19 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <HashRouter>
       <ClerkProvider
         publishableKey={PUBLISHABLE_KEY}
-        // ✅ Corrige redirecciones post login/signup
-        afterSignInUrl="/"
-        afterSignUpUrl="/"
-        signInUrl="/sign-in"
-        signUpUrl="/sign-up"
-        /**
-         * 🚦 Corrección del enrutamiento Clerk + HashRouter
-         * Mantiene navegación sin recargar toda la app
-         */
+        // 🚦 Corrección de navegación para evitar redirecciones automáticas
         navigate={(to) => {
           console.log("🔁 Clerk intenta navegar a:", to);
+
+          // 🚫 Evita que Clerk fuerce volver al home automáticamente
+          if (!to || to === "/" || to === "#/") {
+            console.log("🧭 Ignorando navegación automática al home");
+            return;
+          }
+
+          // ✅ Mantiene el comportamiento del HashRouter
           if (to.startsWith("#")) {
-            window.location.hash = to; // no recarga
+            window.location.hash = to;
           } else if (to.startsWith("/")) {
             window.location.hash = `#${to}`;
           } else {
