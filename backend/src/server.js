@@ -7,7 +7,7 @@ const User = require("./models/UserModel");
 const clerkWebhookRouter = require("./routes/clerkWebhook");
 const userRoutes = require("./routes/userRoutes");
 const courseRoutes = require("./routes/courses");
-const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/backend");
+const { ClerkExpressRequireAuth, clerkClient } = require("@clerk/clerk-sdk-node");
 
 // Inicializar Express
 const app = express();
