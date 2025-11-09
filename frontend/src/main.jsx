@@ -12,36 +12,26 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("❌ Falta la variable VITE_CLERK_PUBLISHABLE_KEY en .env");
 }
 
-// ✅ URL completa de tu app en GitHub Pages
-const FRONTEND_URL = "https://smssaviare.github.io/centro-educativo-SAG";
+// ✅ Base URL para GitHub Pages
+const BASE_URL = "https://smssaviare.github.io/centro-educativo-SAG/#";
 
-// 🚀 Render principal con logs detallados
+// 🚀 Render principal
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
       <ClerkProvider
         publishableKey={PUBLISHABLE_KEY}
-        // 👇 Fuerza dominio base correcto para handshake y cookies
-        proxyUrl={`${FRONTEND_URL}/clerk`}
-        // afterSignIn / SignUp / SignOut redirigen dentro del hash router
-        afterSignInUrl="/"
-        afterSignUpUrl="/"
-        afterSignOutUrl="/"
-        // 🔍 Logs adicionales para depurar navegación de Clerk
-        navigate={(to, opts) => {
-          console.log("📍 Clerk navigation intent:", to, opts);
+        // 🚦 Corrige navegación del hash router
+        navigate={(to) => {
+          console.log("🔁 Clerk intenta navegar a:", to);
 
-          if (!to) {
-            console.warn("⚠️ Clerk tried to navigate with empty path");
+          // 🚫 Evita que Clerk fuerce volver al home automáticamente
+          if (!to || to === "/" || to === "#/") {
+            console.log("🧭 Ignorando navegación automática al home");
             return;
           }
 
-          if (to.startsWith("http")) {
-            console.warn("🌐 External redirect:", to);
-            window.location.href = to;
-            return;
-          }
-
+          // ✅ Mantiene el comportamiento del HashRouter
           if (to.startsWith("#")) {
             window.location.hash = to;
           } else if (to.startsWith("/")) {
@@ -49,8 +39,19 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           } else {
             window.location.hash = `#/${to}`;
           }
-
-          console.log("✅ Hash updated to:", window.location.hash);
+        }}
+        // ⚙️ Workaround: desactiva el refresco de sesión automático
+        appearance={{
+          variables: {
+            colorPrimary: "#007bff",
+          },
+        }}
+        options={{
+          // 🔒 Clerk a veces intenta validar handshake al dominio raíz.
+          // Esto fuerza a mantener la sesión mientras no haya un logout manual.
+          syncSessionWithTab: false,
+          sessionExpiredToast: false,
+          telemetry: false,
         }}
       >
         <App />
