@@ -6,6 +6,9 @@ const {
   getMyCourses,
   getStudents,
   assignStudent,
+  assignQuiz,
+  saveQuizResult,
+  getQuizResults,
   updateCourse,
   deleteCourse,
   getCourseBlocks,
@@ -13,9 +16,6 @@ const {
 } = require("../controllers/courseController");
 
 const { Course } = require("../models/CourseModel");
-  assignQuiz,
-  saveQuizResult,
-  getQuizResults,
 
 // Crear curso
 router.post("/", createCourse);
