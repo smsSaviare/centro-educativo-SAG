@@ -20,8 +20,8 @@ import { useEffect } from "react";
 
 async function syncUserToBackend(user, getToken) {
   try {
-    const token = await getToken();
-    const response = await fetch("https://sag-backend-b2j6.onrender.com/sync-user", {
+    const token = await getToken({ skipCache: true });
+    const response = await fetch("https://sag-backend-b2j6.onrender.com/sync-user", {       
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -62,17 +62,18 @@ function App() {
     if (isSignedIn && user) syncUserToBackend(user, getToken);
   }, [isSignedIn, user, getToken]);
 
-  // ✅ Renovar sesión cada 30 segundos para evitar expiración
+  // ✅ Renovar sesión cada 40 segundos para evitar expiración (menos que timeout)
   useEffect(() => {
     if (!isSignedIn) return;
-    
+
     const interval = setInterval(async () => {
       try {
-        await getToken({ template: "convex" });
+        // Renovar sin especificar template
+        await getToken({ skipCache: true });
       } catch (error) {
-        console.warn("⚠️ No se pudo renovar el token", error);
+        console.debug("ℹ️ Token refresh:", error.message);
       }
-    }, 30000); // Cada 30 segundos
+    }, 40000); // Cada 40 segundos (antes del timeout típico de 60s)
 
     return () => clearInterval(interval);
   }, [isSignedIn, getToken]);
