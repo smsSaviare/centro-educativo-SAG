@@ -9,7 +9,9 @@ export default function LogoutButton({ className = "" }) {
 
   async function handleSignOut() {
     try {
+      console.warn("DIAGNOSTIC signOut called from LogoutButton", { href: window.location.href, stack: new Error().stack });
       await signOut();
+      console.warn("DIAGNOSTIC signOut completed (LogoutButton)", { href: window.location.href });
       // 🔹 Redirige correctamente dentro del HashRouter
       navigate("/");
     } catch (err) {

@@ -30,9 +30,11 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
+      console.warn("DIAGNOSTIC signOut called from Navbar", { href: window.location.href, stack: new Error().stack });
       await signOut({
         redirectUrl: "https://smssaviare.github.io/centro-educativo-SAG/#/",
       });
+      console.warn("DIAGNOSTIC signOut completed (Navbar)", { href: window.location.href });
       setTimeout(() => (window.location.hash = "#/"), 300);
 
     } catch (err) {
