@@ -5,7 +5,7 @@ import Home from "./components/Home";
 import Dashboard from "./components/Dashboard";
 import CourseView from "./components/CourseView";
 import CourseEditor from "./components/CourseEditor";
-import Contacto from "./components/Contacto"; 
+import Contacto from "./components/Contacto"; // ✅ correctamente importado
 import {
   SignedIn,
   SignedOut,
