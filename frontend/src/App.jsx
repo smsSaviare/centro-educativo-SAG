@@ -65,6 +65,48 @@ function App() {
   // Clerk maneja automáticamente la renovación de tokens
   // Removido el refresh manual que causaba interrupciones en videos
 
+  // Diagnostic listeners: detect what causes page unload/redirect/close
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      console.warn("DIAGNOSTIC beforeunload", e);
+    };
+    const onUnload = (e) => {
+      console.warn("DIAGNOSTIC unload", e);
+    };
+    const onVisibility = () => {
+      console.warn("DIAGNOSTIC visibilitychange", document.visibilityState);
+    };
+    const onHashChange = () => {
+      console.warn("DIAGNOSTIC hashchange", window.location.hash);
+    };
+    const onPopState = (e) => {
+      console.warn("DIAGNOSTIC popstate", window.location.href, e);
+    };
+    const onMessage = (ev) => {
+      try {
+        console.warn("DIAGNOSTIC window.message", ev.origin, ev.data);
+      } catch (err) {
+        console.warn("DIAGNOSTIC window.message (error reading)", err);
+      }
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("unload", onUnload);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("message", onMessage);
+
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("unload", onUnload);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("hashchange", onHashChange);
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("message", onMessage);
+    };
+  }, []);
+
   return (
     <>
       <Navbar />
