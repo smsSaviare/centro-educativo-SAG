@@ -182,9 +182,35 @@ function App() {
           element={
             <>
               {(() => {
-                localStorage.clear();
-                window.location.hash = "#/";
-                return null;
+                // Evitar borrar storage automáticamente: mostrar confirmación
+                // Si algo navega a /logout accidentalmente, esto previene cierre/recarga
+                return (
+                  <div className="max-w-2xl mx-auto p-6 mt-20 text-center">
+                    <h2 className="text-2xl font-bold mb-4">Confirmar cierre de sesión</h2>
+                    <p className="mb-4">¿Estás seguro de que deseas cerrar sesión? Presiona el botón para confirmar.</p>
+                    <div className="flex justify-center gap-4">
+                      <button
+                        onClick={() => {
+                          try {
+                            localStorage.clear();
+                            window.location.hash = "#/";
+                          } catch (err) {
+                            console.error("Error al cerrar sesión desde /logout:", err);
+                          }
+                        }}
+                        className="bg-red-500 text-white px-4 py-2 rounded"
+                      >
+                        Confirmar cierre de sesión
+                      </button>
+                      <button
+                        onClick={() => (window.location.hash = "#/")}
+                        className="bg-gray-200 px-4 py-2 rounded"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                );
               })()}
             </>
           }
