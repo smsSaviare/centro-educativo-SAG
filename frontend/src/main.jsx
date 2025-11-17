@@ -43,8 +43,8 @@ const clerkOptions = {
   signInForceRedirectUrl: "/#/courses",
   signUpForceRedirectUrl: "/#/courses",
   afterSignOutUrl: "/#/",
-  domain: "smssaviare.github.io",
 };
+
 
 // 🚀 Render final, estable y funcional
 ReactDOM.createRoot(document.getElementById("root")).render(
