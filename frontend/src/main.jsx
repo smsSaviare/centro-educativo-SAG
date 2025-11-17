@@ -11,69 +11,48 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("❌ Falta la variable VITE_CLERK_PUBLISHABLE_KEY en .env");
 }
 
-// 🧱 Aislar Clerk, pero permitir navegación interna de React Router
-class SafeClerkWrapper extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { ready: false };
+// 🧱 Bloquear solo el BroadcastChannel de Clerk (la causa real del reinicio)
+const OriginalBroadcast = window.BroadcastChannel;
+window.BroadcastChannel = function (name) {
+  if (name && name.startsWith("__clerk")) {
+    console.warn("🛑 Canal de Clerk bloqueado:", name);
+    // Canal falso inerte
+    return {
+      name,
+      postMessage: () => {},
+      close: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      onmessage: null,
+    };
   }
+  return new OriginalBroadcast(name);
+};
 
-  componentDidMount() {
-    const blockedEvents = ["hashchange", "popstate", "beforeunload"];
+// Mantener visibilidad siempre activa (Clerk la usa para decidir revalidar)
+Object.defineProperty(document, "visibilityState", {
+  get: () => "visible",
+});
 
-    blockedEvents.forEach((eventType) => {
-      window.addEventListener(
-        eventType,
-        (event) => {
-          const newHash = window.location.hash;
-
-          // Permitir solo cambios internos de la app (desde botones o links React)
-          const fromReact = event.isTrusted && newHash.startsWith("#/");
-          if (fromReact) return;
-
-          // Bloquear redirecciones externas (Clerk u otras)
-          if (newHash === "#/" || newHash === "#") {
-            console.warn("🚫 Redirección externa bloqueada:", newHash);
-            event.stopImmediatePropagation();
-            event.preventDefault();
-          }
-        },
-        true // Capture para interceptar antes que Clerk
-      );
-    });
-
-    // Mantener página visible ante Clerk
-    Object.defineProperty(document, "visibilityState", {
-      get: () => "visible",
-    });
-
-    this.setState({ ready: true });
-  }
-
-  render() {
-    if (!this.state.ready) return null;
-    return this.props.children;
-  }
-}
-
+// Configuración de Clerk
 const clerkOptions = {
   syncSessionWithTab: false,
   sessionExpiredToast: false,
   telemetry: false,
-  navigate: () => {}, // Bloquea navegación externa
+  navigate: () => {}, // evita redirecciones automáticas
   signInForceRedirectUrl: "/#/courses",
   signUpForceRedirectUrl: "/#/courses",
   afterSignOutUrl: "/#/",
   domain: "smssaviare.github.io",
 };
 
-// 🚀 Render estable y funcional
+// 🚀 Render final, estable y funcional
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <SafeClerkWrapper>
+  <React.StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} options={clerkOptions}>
       <HashRouter>
         <App />
       </HashRouter>
     </ClerkProvider>
-  </SafeClerkWrapper>
+  </React.StrictMode>
 );
