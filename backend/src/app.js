@@ -6,6 +6,15 @@ const { ClerkExpressRequireAuth, Clerk } = require("@clerk/backend");
 
 const app = express();
 
+// 🔧 Configura CORS para permitir tu dominio de GitHub Pages
+app.use(cors({
+  origin: [
+    "http://localhost:5173",               // para desarrollo local
+    "https://smssaviare.github.io"         // tu dominio en producción
+  ],
+  credentials: true
+}));
+
 // Inicializa Clerk con tu secret key
 const clerkClient = Clerk({ apiKey: process.env.CLERK_SECRET_KEY });
 
@@ -13,12 +22,10 @@ const clerkClient = Clerk({ apiKey: process.env.CLERK_SECRET_KEY });
 //app.use(cors());
 app.use(express.json());
 
-// 🔧 Nueva ruta: sesión de desarrollo
+// Nueva ruta: sesión de desarrollo
 app.post("/api/dev-session", async (req, res) => {
   try {
-    // ⚠️ Aquí va tu userId real de Clerk
-    const userId = "user_34TWX7M13fgqVw9cYoYgcfotRNP";
-
+    const userId = "user_34TWX7M13fgqVw9cYoYgcfotRNP"; // tu userId real
     const session = await clerkClient.sessions.create({ userId });
     res.json({ token: session.id });
   } catch (err) {
