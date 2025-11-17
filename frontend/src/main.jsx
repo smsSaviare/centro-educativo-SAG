@@ -6,9 +6,8 @@ import "./index.css";
 import { HashRouter } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 
-// ✅ Claves de Clerk configuradas
+// ✅ Solo necesitas la clave pública de Clerk
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const FRONTEND_API = import.meta.env.VITE_CLERK_FRONTEND_API;
 
 if (!PUBLISHABLE_KEY) {
   throw new Error("❌ Falta VITE_CLERK_PUBLISHABLE_KEY");
