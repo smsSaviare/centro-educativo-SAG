@@ -158,7 +158,6 @@ export default function CourseView() {
       setTimeout(() => setMessage(""), 2000);
     }
   };
-  };
 
   const calculateFinalScore = () => {
     const quizIds = blocks.filter((b) => b.type === "quiz").map((b) => b.id);
