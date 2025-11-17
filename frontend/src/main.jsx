@@ -6,27 +6,40 @@ import "./index.css";
 import { HashRouter } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 
-// ✅ Solo necesitas la clave pública de Clerk
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
+const FRONTEND_API = import.meta.env.VITE_CLERK_FRONTEND_API;
 if (!PUBLISHABLE_KEY) {
-  throw new Error("❌ Falta VITE_CLERK_PUBLISHABLE_KEY");
+  throw new Error("❌ Falta la variable VITE_CLERK_PUBLISHABLE_KEY en .env");
+}
+if (!FRONTEND_API) {
+  throw new Error("❌ Falta la variable VITE_CLERK_FRONTEND_API en .env");
 }
 
-console.log("🔐 Clerk:", PUBLISHABLE_KEY.includes("_live") ? "✅ PRODUCCIÓN" : "⚠️ DESARROLLO");
-
-// ✅ Configuración para Producción con GitHub Pages
+// ✅ Opciones para mantener sesión persistente
 const clerkOptions = {
-  syncSessionWithTab: true,
-  sessionExpiredToast: true,
+  syncSessionWithTab: true,          // permite refrescar sesión entre pestañas
+  sessionExpiredToast: true,         // muestra aviso si expira
   telemetry: false,
+  navigate: (to) => (window.location.href = to),
   afterSignOutUrl: "/#/",
 };
+
+// ✅ Renovar token periódicamente para mantener sesión activa
+setInterval(() => {
+  if (typeof window !== "undefined") {
+    try {
+      window.Clerk?.session?.touch();
+    } catch (e) {
+      // Silencioso
+    }
+  }
+}, 30000); // Cada 30 segundos
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY}
+      frontendApi={FRONTEND_API}
       options={clerkOptions}
     >
       <HashRouter>

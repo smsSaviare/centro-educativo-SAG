@@ -1,3 +1,4 @@
+// frontend/src/App.jsx
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./components/Home";
@@ -19,7 +20,7 @@ import { useEffect } from "react";
 
 async function syncUserToBackend(user, getToken) {
   try {
-    const token = await getToken({ skipCache: true });
+    const token = await getToken();
     const response = await fetch("https://sag-backend-b2j6.onrender.com/sync-user", {
       method: "POST",
       headers: {
@@ -61,18 +62,17 @@ function App() {
     if (isSignedIn && user) syncUserToBackend(user, getToken);
   }, [isSignedIn, user, getToken]);
 
-  // ✅ Renovar sesión cada 40 segundos para evitar expiración (menos que timeout)
+  // ✅ Renovar sesión cada 30 segundos para evitar expiración
   useEffect(() => {
     if (!isSignedIn) return;
     
     const interval = setInterval(async () => {
       try {
-        // Renovar sin especificar template
-        await getToken({ skipCache: true });
+        await getToken({ template: "convex" });
       } catch (error) {
-        console.debug("ℹ️ Token refresh:", error.message);
+        console.warn("⚠️ No se pudo renovar el token", error);
       }
-    }, 40000); // Cada 40 segundos (antes del timeout típico de 60s)
+    }, 30000); // Cada 30 segundos
 
     return () => clearInterval(interval);
   }, [isSignedIn, getToken]);
