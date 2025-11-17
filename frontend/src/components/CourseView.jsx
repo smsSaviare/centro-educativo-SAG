@@ -102,7 +102,6 @@ export default function CourseView() {
     fetchData();
   }, [id]);
 
-  const handleAnswer = (blockId, selectedIndex, correctIndex) => {
   const handleAnswer = async (blockId, selectedIndex, correctIndex) => {
     const isCorrect = selectedIndex === correctIndex;
     const scoreVal = isCorrect ? 1 : 0;
@@ -221,7 +220,6 @@ export default function CourseView() {
                       ? b.question
                       : "Pregunta sin texto"}
                   </p>
-                  {(b.options || []).map((opt, i) => (
                   {(b.options || []).map((opt, i) => {
                     const assigned = assignedMap[b.id];
                     const disabled = assigned ? (assigned.score !== null && assigned.score !== undefined) : true; // si no está asignado, bloquear
@@ -284,7 +282,6 @@ export default function CourseView() {
                               <tr key={`${b.id}-${r.clerkId}`}>
                                 <td>{r.clerkId}</td>
                                 <td>{r.score === null || r.score === undefined ? '—' : (r.score * 100) + '%'}</td>
-                                <td>{r.completedAt ? new Date(r.completedAt).toLocaleString() : '—'}</td>
                               </tr>
                             ))}
                           </tbody>
