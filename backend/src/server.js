@@ -106,7 +106,7 @@ async function startServer() {
         email: adminEmail,
         firstName: "Administrador",
         lastName: "Sistema",
-        role: "admin",
+        role: "teacher",
       },
     });
 

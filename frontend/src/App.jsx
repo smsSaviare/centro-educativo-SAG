@@ -61,6 +61,21 @@ function App() {
     if (isSignedIn && user) syncUserToBackend(user, getToken);
   }, [isSignedIn, user, getToken]);
 
+  // ✅ Renovar sesión cada 30 segundos para evitar expiración
+  useEffect(() => {
+    if (!isSignedIn) return;
+    
+    const interval = setInterval(async () => {
+      try {
+        await getToken({ template: "convex" });
+      } catch (error) {
+        console.warn("⚠️ No se pudo renovar el token", error);
+      }
+    }, 30000); // Cada 30 segundos
+
+    return () => clearInterval(interval);
+  }, [isSignedIn, getToken]);
+
   return (
     <>
       <Navbar />

@@ -15,14 +15,25 @@ if (!FRONTEND_API) {
   throw new Error("❌ Falta la variable VITE_CLERK_FRONTEND_API en .env");
 }
 
-// ✅ Opciones limpias, sin hacks ni domain incorrecto
+// ✅ Opciones para mantener sesión persistente
 const clerkOptions = {
-  syncSessionWithTab: true,        // permite refrescar sesión entre pestañas
-  sessionExpiredToast: true,       // muestra aviso si expira
+  syncSessionWithTab: true,          // permite refrescar sesión entre pestañas
+  sessionExpiredToast: true,         // muestra aviso si expira
   telemetry: false,
-  navigate: (to) => (window.location.href = to), // navegación controlada
+  navigate: (to) => (window.location.href = to),
   afterSignOutUrl: "/#/",
 };
+
+// ✅ Renovar token periódicamente para mantener sesión activa
+setInterval(() => {
+  if (typeof window !== "undefined") {
+    try {
+      window.Clerk?.session?.touch();
+    } catch (e) {
+      // Silencioso
+    }
+  }
+}, 30000); // Cada 30 segundos
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
