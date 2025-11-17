@@ -2,12 +2,31 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const { ClerkExpressRequireAuth } = require("@clerk/backend");
+const { ClerkExpressRequireAuth, Clerk } = require("@clerk/backend");
+
 const app = express();
+
+// Inicializa Clerk con tu secret key
+const clerkClient = Clerk({ apiKey: process.env.CLERK_SECRET_KEY });
 
 // Middleware base
 //app.use(cors());
 app.use(express.json());
+
+// 🔧 Nueva ruta: sesión de desarrollo
+app.post("/api/dev-session", async (req, res) => {
+  try {
+    // ⚠️ Aquí va tu userId real de Clerk
+    const userId = "user_34TWX7M13fgqVw9cYoYgcfotRNP";
+
+    const session = await clerkClient.sessions.create({ userId });
+    res.json({ token: session.id });
+  } catch (err) {
+    console.error("❌ Error creando sesión de prueba:", err);
+    res.status(500).json({ error: "No se pudo crear sesión de prueba" });
+  }
+});
+
 app.use("/api/webhooks", require("./routes/clerkWebhook"));
 app.use("/api/courses", require("./routes/courses"));
 
@@ -22,6 +41,20 @@ app.get("/api/secure-data", ClerkExpressRequireAuth(), (req, res) => {
     mensaje: "Accediste a datos protegidos 🎯",
     usuario: req.auth.userId,
   });
+});
+
+// 🔧 Nueva ruta: sesión de desarrollo
+app.post("/api/dev-session", async (req, res) => {
+  try {
+    // ⚠️ Usa un userId real de Clerk (ejemplo: el tuyo de prueba)
+    const userId = "user_123"; // reemplaza con el ID de tu usuario en Clerk
+
+    const session = await clerkClient.sessions.create({ userId });
+    res.json({ token: session.id });
+  } catch (err) {
+    console.error("❌ Error creando sesión de prueba:", err);
+    res.status(500).json({ error: "No se pudo crear sesión de prueba" });
+  }
 });
 
 // Importa tus rutas actuales

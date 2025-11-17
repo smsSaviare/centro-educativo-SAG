@@ -7,49 +7,30 @@ import { HashRouter } from "react-router-dom";
 import { ClerkProvider } from "@clerk/clerk-react";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const FRONTEND_API = import.meta.env.VITE_CLERK_FRONTEND_API;
 if (!PUBLISHABLE_KEY) {
   throw new Error("❌ Falta la variable VITE_CLERK_PUBLISHABLE_KEY en .env");
 }
+if (!FRONTEND_API) {
+  throw new Error("❌ Falta la variable VITE_CLERK_FRONTEND_API en .env");
+}
 
-// 🧱 Bloquear solo el BroadcastChannel de Clerk (la causa real del reinicio)
-const OriginalBroadcast = window.BroadcastChannel;
-window.BroadcastChannel = function (name) {
-  if (name && name.startsWith("__clerk")) {
-    console.warn("🛑 Canal de Clerk bloqueado:", name);
-    // Canal falso inerte
-    return {
-      name,
-      postMessage: () => {},
-      close: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      onmessage: null,
-    };
-  }
-  return new OriginalBroadcast(name);
-};
-
-// Mantener visibilidad siempre activa (Clerk la usa para decidir revalidar)
-Object.defineProperty(document, "visibilityState", {
-  get: () => "visible",
-});
-
-// Configuración de Clerk
+// ✅ Opciones limpias, sin hacks ni domain incorrecto
 const clerkOptions = {
-  syncSessionWithTab: false,
-  sessionExpiredToast: false,
+  syncSessionWithTab: true,        // permite refrescar sesión entre pestañas
+  sessionExpiredToast: true,       // muestra aviso si expira
   telemetry: false,
-  navigate: () => {}, // evita redirecciones automáticas
-  signInForceRedirectUrl: "/#/courses",
-  signUpForceRedirectUrl: "/#/courses",
+  navigate: (to) => (window.location.href = to), // navegación controlada
   afterSignOutUrl: "/#/",
-  domain: "smssaviare.github.io",
 };
 
-// 🚀 Render final, estable y funcional
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY} options={clerkOptions}>
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
+      frontendApi={FRONTEND_API}
+      options={clerkOptions}
+    >
       <HashRouter>
         <App />
       </HashRouter>
