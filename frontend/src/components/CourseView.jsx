@@ -1,7 +1,8 @@
 // frontend/src/components/CourseView.jsx
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { getCourseById, getCourseBlocks } from "../api";
+import { getCourseById, getCourseBlocks, getQuizResults, submitQuizResult, assignQuizBlock, getStudents } from "../api";
+import { useUser } from "@clerk/clerk-react";
 
 // Convierte URL de YouTube a embed
 const getYoutubeEmbedUrl = (url) => {
@@ -42,7 +43,11 @@ export default function CourseView() {
   const [blocks, setBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState({});
+  const [assignedMap, setAssignedMap] = useState({});
+  const [allResults, setAllResults] = useState([]);
+  const [students, setStudents] = useState([]);
   const [message, setMessage] = useState("");
+  const { user, isSignedIn } = useUser();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,6 +68,23 @@ export default function CourseView() {
               }))
             : []
         );
+              // Cargar resultados/assignaciones si el usuario está logueado
+              if (isSignedIn && user) {
+                const myResults = await getQuizResults(id, user.id);
+                const map = {};
+                (myResults || []).forEach((r) => {
+                  map[r.quizBlockId] = r;
+                });
+                setAssignedMap(map);
+
+                // Si soy el profesor creador, cargar todos los resultados y lista de estudiantes
+                if (courseData && courseData.creatorClerkId === user.id) {
+                  const all = await getQuizResults(id);
+                  setAllResults(all || []);
+                  const studs = await getStudents(user.id);
+                  setStudents(studs || []);
+                }
+              }
       } catch (err) {
         console.error("❌ Error cargando curso:", err);
         setBlocks([]);
@@ -74,13 +96,62 @@ export default function CourseView() {
   }, [id]);
 
   const handleAnswer = (blockId, selectedIndex, correctIndex) => {
+  const handleAnswer = async (blockId, selectedIndex, correctIndex) => {
     const isCorrect = selectedIndex === correctIndex;
-    setScores((prev) => ({
-      ...prev,
-      [blockId]: isCorrect ? 1 : 0,
-    }));
-    setMessage(isCorrect ? "✅ ¡Correcto!" : "❌ Incorrecto");
-    setTimeout(() => setMessage(""), 1500);
+    const scoreVal = isCorrect ? 1 : 0;
+
+    // Si hay asignación, intentar enviar resultado
+    try {
+      if (!isSignedIn || !user) {
+        setMessage("Debes iniciar sesión para enviar el resultado");
+        return;
+      }
+
+      const assigned = assignedMap[blockId];
+      if (!assigned) {
+        setMessage("No estás asignado a este quiz");
+        return;
+      }
+
+      if (assigned.score !== null && assigned.score !== undefined) {
+        setMessage("Ya completaste este quiz");
+        return;
+      }
+
+      const res = await submitQuizResult(id, user.id, blockId, scoreVal, { selectedIndex });
+      if (res && res.success) {
+        // actualizar mapa local
+        setAssignedMap((prev) => ({ ...prev, [blockId]: res.result }));
+        setScores((prev) => ({ ...prev, [blockId]: scoreVal }));
+        setMessage(isCorrect ? "✅ ¡Correcto!" : "❌ Incorrecto");
+        setTimeout(() => setMessage(""), 1500);
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage(err.message || "Error enviando resultado");
+      setTimeout(() => setMessage(""), 2000);
+    }
+  };
+
+  const handleAssign = async (blockId, studentClerkId) => {
+    try {
+      if (!isSignedIn || !user) return setMessage("Debes iniciar sesión como profesor");
+      await assignQuizBlock(id, blockId, studentClerkId, user.id);
+      setMessage("Asignación realizada");
+      // refrescar resultados
+      const all = await getQuizResults(id);
+      setAllResults(all || []);
+      const myResults = await getQuizResults(id, user.id);
+      const map = {};
+      (myResults || []).forEach((r) => (map[r.quizBlockId] = r));
+      setAssignedMap(map);
+      setTimeout(() => setMessage(""), 1500);
+    } catch (err) {
+      console.error(err);
+      setMessage("Error asignando quiz");
+      setTimeout(() => setMessage(""), 2000);
+    }
+  };
   };
 
   const calculateFinalScore = () => {
@@ -144,21 +215,72 @@ export default function CourseView() {
                       : "Pregunta sin texto"}
                   </p>
                   {(b.options || []).map((opt, i) => (
-                    <button
-                      key={i}
-                      className={`block w-full text-left border p-2 rounded mb-2 hover:bg-gray-100 ${
-                        scores[b.id] !== undefined
-                          ? i === b.correct
-                            ? "bg-green-100 border-green-400"
-                            : "bg-red-50"
-                          : ""
-                      }`}
-                      onClick={() => handleAnswer(b.id, i, b.correct)}
-                      disabled={scores[b.id] !== undefined}
-                    >
-                      {opt !== "" ? opt : `Opción ${i + 1}`}
-                    </button>
-                  ))}
+                  {(b.options || []).map((opt, i) => {
+                    const assigned = assignedMap[b.id];
+                    const disabled = assigned ? (assigned.score !== null && assigned.score !== undefined) : true; // si no está asignado, bloquear
+                    const showResultStyle = assigned && assigned.score !== null && assigned.score !== undefined;
+
+                    return (
+                      <button
+                        key={i}
+                        className={`block w-full text-left border p-2 rounded mb-2 hover:bg-gray-100 ${
+                          showResultStyle
+                            ? (assigned.score === 1 ? "bg-green-100 border-green-400" : "bg-red-50")
+                            : ""
+                        }`}
+                        onClick={() => handleAnswer(b.id, i, b.correct)}
+                        disabled={disabled}
+                      >
+                        {opt !== "" ? opt : `Opción ${i + 1}`}
+                      </button>
+                    );
+                  })}
+
+                  {/* Si soy el profesor creador, mostrar controles de asignación y resultados por estudiante */}
+                  {course?.creatorClerkId === user?.id && (
+                    <div className="mt-3 border-t pt-3">
+                      <h4 className="font-semibold">Asignar este quiz a un estudiante</h4>
+                      <div className="flex gap-2 mt-2">
+                        <select id={`assign-${b.id}`} className="border p-1 rounded flex-1">
+                          <option value="">Seleccionar estudiante</option>
+                          {students.map((s) => (
+                            <option key={s.clerkId} value={s.clerkId}>{`${s.firstName || ''} ${s.lastName || ''} (${s.email})`}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => {
+                            const sel = document.getElementById(`assign-${b.id}`);
+                            if (sel && sel.value) handleAssign(b.id, sel.value);
+                          }}
+                          className="bg-green-600 text-white px-3 py-1 rounded"
+                        >
+                          Asignar
+                        </button>
+                      </div>
+
+                      <div className="mt-3">
+                        <h5 className="font-semibold">Resultados</h5>
+                        <table className="w-full text-sm mt-2">
+                          <thead>
+                            <tr className="text-left">
+                              <th>Estudiante</th>
+                              <th>Nota</th>
+                              <th>Completado</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {allResults.filter(r => r.quizBlockId === b.id).map((r) => (
+                              <tr key={`${b.id}-${r.clerkId}`}>
+                                <td>{r.clerkId}</td>
+                                <td>{r.score === null || r.score === undefined ? '—' : (r.score * 100) + '%'}</td>
+                                <td>{r.completedAt ? new Date(r.completedAt).toLocaleString() : '—'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

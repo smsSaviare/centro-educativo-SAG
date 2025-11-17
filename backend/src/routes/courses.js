@@ -13,6 +13,9 @@ const {
 } = require("../controllers/courseController");
 
 const { Course } = require("../models/CourseModel");
+  assignQuiz,
+  saveQuizResult,
+  getQuizResults,
 
 // Crear curso
 router.post("/", createCourse);
@@ -43,4 +46,13 @@ router.delete("/:courseId", deleteCourse);
 router.get("/:courseId/blocks", getCourseBlocks);
 router.put("/:courseId/blocks", saveCourseBlocks);
 
+
+// Asignar un quizBlock a estudiante(s)
+router.post('/:courseId/blocks/:quizBlockId/assign', assignQuiz);
+
+// Guardar resultado de quiz (envío por estudiante)
+router.post('/:courseId/quiz/submit', saveQuizResult);
+
+// Obtener resultados del curso (opcional clerkId query para filtrar por estudiante)
+router.get('/:courseId/quiz/results', getQuizResults);
 module.exports = router;

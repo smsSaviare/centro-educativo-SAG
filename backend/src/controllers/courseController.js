@@ -201,18 +201,63 @@ exports.saveQuizResult = async (req, res) => {
     if (!clerkId || !courseId || !quizBlockId)
       return res.status(400).json({ error: "Faltan datos requeridos" });
 
-    const result = await QuizResult.create({
-      clerkId,
-      courseId,
-      quizBlockId,
-      score,
-      answers,
-    });
+    // Verificar que exista una asignación previa para este estudiante y quiz
+    const existing = await QuizResult.findOne({ where: { clerkId, courseId, quizBlockId } });
 
-    res.json({ success: true, result });
+    if (!existing) {
+      return res.status(403).json({ error: "Quiz no asignado al estudiante" });
+    }
+
+    // Si ya tiene nota registrada, no permitir reintento
+    if (existing.score !== null && existing.score !== undefined) {
+      return res.status(403).json({ error: "Quiz ya completado por este estudiante" });
+    }
+
+    // Actualizar registro con la nota y respuestas
+    existing.score = score;
+    existing.answers = answers || null;
+    existing.completedAt = new Date();
+    await existing.save();
+
+    return res.json({ success: true, result: existing });
   } catch (err) {
     console.error("❌ Error guardando resultado del quiz:", err);
     res.status(500).json({ error: "Error guardando resultado del quiz" });
+  }
+};
+
+// ➕ Asignar un quizBlock a uno o varios estudiantes
+exports.assignQuiz = async (req, res) => {
+  try {
+    const { courseId, quizBlockId } = req.params;
+    const { studentClerkId } = req.body;
+    const assignedBy = req.headers["x-clerk-id"] || null; // profesor que asigna
+
+    if (!courseId || !quizBlockId || !studentClerkId)
+      return res.status(400).json({ error: "Faltan datos requeridos" });
+
+    const students = Array.isArray(studentClerkId) ? studentClerkId : [studentClerkId];
+    const created = [];
+
+    for (const clerkId of students) {
+      const existing = await QuizResult.findOne({ where: { clerkId, courseId, quizBlockId } });
+      if (!existing) {
+        const row = await QuizResult.create({
+          clerkId,
+          courseId,
+          quizBlockId,
+          score: null,
+          answers: null,
+          assignedBy,
+        });
+        created.push(row);
+      }
+    }
+
+    return res.json({ success: true, created });
+  } catch (err) {
+    console.error("❌ Error asignando quiz:", err);
+    return res.status(500).json({ error: "Error asignando quiz" });
   }
 };
 

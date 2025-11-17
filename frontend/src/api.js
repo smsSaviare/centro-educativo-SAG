@@ -65,6 +65,30 @@ export async function getCourseBlocks(courseId, clerkId) {
   return apiRequest(`/courses/${courseId}/blocks`, { method: "GET", clerkId });
 }
 
+// Asignar un quizBlock a estudiante(s)
+export async function assignQuizBlock(courseId, quizBlockId, studentClerkId, teacherClerkId) {
+  return apiRequest(`/courses/${courseId}/blocks/${quizBlockId}/assign`, {
+    method: "POST",
+    body: { studentClerkId },
+    clerkId: teacherClerkId,
+  });
+}
+
+// Enviar resultado de un quiz (estudiante)
+export async function submitQuizResult(courseId, clerkId, quizBlockId, score, answers) {
+  return apiRequest(`/courses/${courseId}/quiz/submit`, {
+    method: "POST",
+    body: { clerkId, courseId, quizBlockId, score, answers },
+    clerkId,
+  });
+}
+
+// Obtener resultados del curso; si clerkId se pasa, filtra por estudiante
+export async function getQuizResults(courseId, clerkId) {
+  const query = clerkId ? `?clerkId=${encodeURIComponent(clerkId)}` : "";
+  return apiRequest(`/courses/${courseId}/quiz/results${query}`, { method: "GET", clerkId });
+}
+
 // Guardar bloques de un curso
 export const saveCourseBlocks = async (courseId, clerkId, blocks) => {
   // Si por algún motivo clerkId es array, tomar el primero
