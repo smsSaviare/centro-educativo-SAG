@@ -208,15 +208,18 @@ exports.saveQuizResult = async (req, res) => {
       return res.status(403).json({ error: "Quiz no asignado al estudiante" });
     }
 
-    // Si ya tiene nota registrada, no permitir reintento
-    if (existing.score !== null && existing.score !== undefined) {
-      return res.status(403).json({ error: "Quiz ya completado por este estudiante" });
+    // Verificar intentos restantes
+    if (existing.attempts >= existing.maxAttempts) {
+      return res.status(403).json({ error: "No quedan intentos para este quiz" });
     }
 
-    // Actualizar registro con la nota y respuestas
+    // Incrementar intentos y guardar resultado
+    existing.attempts = (existing.attempts || 0) + 1;
     existing.score = score;
     existing.answers = answers || null;
-    existing.completedAt = new Date();
+    if (existing.attempts >= existing.maxAttempts) {
+      existing.completedAt = new Date();
+    }
     await existing.save();
 
     return res.json({ success: true, result: existing });
@@ -270,8 +273,23 @@ exports.getQuizResults = async (req, res) => {
     const where = { courseId };
     if (clerkId) where.clerkId = clerkId; // si es estudiante
 
-    const results = await QuizResult.findAll({ where });
-    res.json(results);
+    const results = await QuizResult.findAll({ where, order: [['quizBlockId','ASC']] });
+
+    // Recuperar datos de usuario (nombre/email) para mostrar en frontend
+    const clerkIds = Array.from(new Set(results.map(r => r.clerkId)));
+    const users = clerkIds.length > 0 ? await User.findAll({ where: { clerkId: clerkIds } }) : [];
+    const userMap = {};
+    users.forEach(u => {
+      userMap[u.clerkId] = { firstName: u.firstName, lastName: u.lastName, email: u.email };
+    });
+
+    const enriched = results.map(r => {
+      const row = r.toJSON();
+      row.student = userMap[row.clerkId] || null;
+      return row;
+    });
+
+    res.json(enriched);
   } catch (err) {
     console.error("❌ Error obteniendo resultados:", err);
     res.status(500).json({ error: "Error obteniendo resultados" });

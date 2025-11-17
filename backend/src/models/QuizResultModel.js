@@ -11,6 +11,8 @@ const QuizResult = sequelize.define("QuizResult", {
   answers: { type: DataTypes.JSON },
   assignedBy: { type: DataTypes.STRING, allowNull: true },
   completedAt: { type: DataTypes.DATE, allowNull: true },
+  attempts: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  maxAttempts: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
 });
 
 module.exports = QuizResult;

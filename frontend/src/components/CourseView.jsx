@@ -46,6 +46,7 @@ export default function CourseView() {
   const [assignedMap, setAssignedMap] = useState({});
   const [allResults, setAllResults] = useState([]);
   const [students, setStudents] = useState([]);
+  const [assignSelects, setAssignSelects] = useState({});
   const [message, setMessage] = useState("");
   const { user, isSignedIn } = useUser();
 
@@ -83,6 +84,12 @@ export default function CourseView() {
                   setAllResults(all || []);
                   const studs = await getStudents(user.id);
                   setStudents(studs || []);
+                  // inicializar selects controlados
+                  const selects = {};
+                  (all || []).forEach(r => {
+                    selects[r.quizBlockId] = selects[r.quizBlockId] || "";
+                  });
+                  setAssignSelects(selects);
                 }
               }
       } catch (err) {
@@ -241,7 +248,11 @@ export default function CourseView() {
                     <div className="mt-3 border-t pt-3">
                       <h4 className="font-semibold">Asignar este quiz a un estudiante</h4>
                       <div className="flex gap-2 mt-2">
-                        <select id={`assign-${b.id}`} className="border p-1 rounded flex-1">
+                        <select
+                          value={assignSelects[b.id] || ""}
+                          onChange={(e) => setAssignSelects(prev => ({ ...prev, [b.id]: e.target.value }))}
+                          className="border p-1 rounded flex-1"
+                        >
                           <option value="">Seleccionar estudiante</option>
                           {students.map((s) => (
                             <option key={s.clerkId} value={s.clerkId}>{`${s.firstName || ''} ${s.lastName || ''} (${s.email})`}</option>
@@ -249,8 +260,8 @@ export default function CourseView() {
                         </select>
                         <button
                           onClick={() => {
-                            const sel = document.getElementById(`assign-${b.id}`);
-                            if (sel && sel.value) handleAssign(b.id, sel.value);
+                            const selValue = assignSelects[b.id];
+                            if (selValue) handleAssign(b.id, selValue);
                           }}
                           className="bg-green-600 text-white px-3 py-1 rounded"
                         >
