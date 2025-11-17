@@ -107,6 +107,17 @@ function App() {
     };
   }, []);
 
+  // DIAGNOSTIC: log cambios en el estado de sesión para detectar cuándo se pierde
+  useEffect(() => {
+    try {
+      const ts = new Date().toISOString();
+      const userId = user?.id || null;
+      console.warn("DIAGNOSTIC sessionChange", { ts, isSignedIn, userId });
+    } catch (err) {
+      console.warn("DIAGNOSTIC sessionChange (error)", err);
+    }
+  }, [isSignedIn, user]);
+
   return (
     <>
       <Navbar />
