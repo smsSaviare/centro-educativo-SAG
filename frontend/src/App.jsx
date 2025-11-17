@@ -60,23 +60,10 @@ function App() {
 
   useEffect(() => {
     if (isSignedIn && user) syncUserToBackend(user, getToken);
-  }, [isSignedIn, user, getToken]);
+  }, [isSignedIn, user]);
 
-  // ✅ Renovar sesión cada 40 segundos para evitar expiración (menos que timeout)
-  useEffect(() => {
-    if (!isSignedIn) return;
-
-    const interval = setInterval(async () => {
-      try {
-        // Renovar sin especificar template
-        await getToken({ skipCache: true });
-      } catch (error) {
-        console.debug("ℹ️ Token refresh:", error.message);
-      }
-    }, 40000); // Cada 40 segundos (antes del timeout típico de 60s)
-
-    return () => clearInterval(interval);
-  }, [isSignedIn, getToken]);
+  // Clerk maneja automáticamente la renovación de tokens
+  // Removido el refresh manual que causaba interrupciones en videos
 
   return (
     <>
