@@ -1,11 +1,9 @@
-// frontend/src/App.jsx
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./components/Home";
 import Dashboard from "./components/Dashboard";
 import CourseView from "./components/CourseView";
 import CourseEditor from "./components/CourseEditor";
-import DevLoginButton from "./components/DevLoginButton";
 import Contacto from "./components/Contacto";
 import {
   SignedIn,
@@ -55,15 +53,6 @@ function RequireRole({ user, role, children }) {
   return <Dashboard />;
 }
 
-function Dashboard() {
-  return (
-    <div>
-      <h1>Panel de usuario</h1>
-      <DevLoginButton />
-    </div>
-  );
-}
-
 function App() {
   const { user, isSignedIn } = useUser();
   const { getToken } = useAuth();
@@ -79,7 +68,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/contacto" element={<Contacto />} />
 
-        {/* Clerk UI para probar autenticación en tu dominio */}
+        {/* Clerk UI para probar autenticación */}
         <Route path="/sign-in" element={<SignIn routing="hash" />} />
         <Route path="/sign-up" element={<SignUp routing="hash" />} />
         <Route path="/user" element={<UserProfile routing="hash" />} />
