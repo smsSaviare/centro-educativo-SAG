@@ -92,7 +92,7 @@ export default function Navbar() {
           onClick={() => goTo("/")}
           className="text-2xl font-bold text-green-600 cursor-pointer"
         >
-          ☘️ Saviare LTDA
+          ☘️ SAVIARE LTDA
         </div>
 
         {/* Botón menú móvil */}
