@@ -58,9 +58,13 @@ export default function Navbar() {
       <div className={navLinkClass} onClick={() => goTo("/")}>
         Inicio
       </div>
-      <div className={navLinkClass} onClick={() => goTo("/courses")}>
-        Cursos
-      </div>
+      
+      {/* Solo usuarios autenticados ven Cursos */}
+      <SignedIn>
+        <div className={navLinkClass} onClick={() => goTo("/courses")}>
+          Cursos
+        </div>
+      </SignedIn>
 
       {/* Solo docentes ven este botón */}
       {role === "teacher" && (
