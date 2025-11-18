@@ -44,15 +44,10 @@ exports.getMyCourses = async (req, res) => {
     let courses = [];
 
     if (user.role === "teacher") {
-      // 👨‍🏫 Los docentes ven TODOS los cursos de todos los docentes
       courses = (
-        await Course.findAll({
-          where: {},
-          attributes: { include: ["id", "title", "description", "image", "resources", "creatorClerkId", "createdAt"] },
-        })
+        await Course.findAll({ where: { creatorClerkId: clerkId } })
       ).map((c) => c.toJSON());
     } else {
-      // 👨‍🎓 Los estudiantes ven solo los cursos donde están inscritos
       const enrollments = await Enrollment.findAll({ where: { clerkId } });
       const courseIds = enrollments.map((e) => e.courseId);
       if (courseIds.length > 0) {
@@ -121,17 +116,12 @@ exports.updateCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { title, description, image, resources } = req.body;
-
     const clerkId = req.headers["x-clerk-id"];
-    const user = await User.findOne({ where: { clerkId } });
-
-    // 🔐 Permitir solo a profesores
-    if (!user || user.role !== "teacher") {
-      return res.status(403).json({ error: "No autorizado" });
-    }
 
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
+    if (course.creatorClerkId !== clerkId)
+      return res.status(403).json({ error: "No autorizado" });
 
     await course.update({ title, description, image, resources });
     res.json(course.toJSON());
@@ -141,27 +131,18 @@ exports.updateCourse = async (req, res) => {
   }
 };
 
-
 /**
  * 🗑️ Borrar curso
- */
-/**
- * 🗑️ Borrar curso (solo profesores)
  */
 exports.deleteCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-
     const clerkId = req.headers["x-clerk-id"];
-    const user = await User.findOne({ where: { clerkId } });
-
-    // 🔐 Permitir solo a profesores
-    if (!user || user.role !== "teacher") {
-      return res.status(403).json({ error: "No autorizado" });
-    }
 
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
+    if (course.creatorClerkId !== clerkId)
+      return res.status(403).json({ error: "No autorizado" });
 
     await course.destroy();
     res.json({ success: true, message: "Curso eliminado" });
@@ -170,7 +151,6 @@ exports.deleteCourse = async (req, res) => {
     res.status(500).json({ error: "Error borrando curso" });
   }
 };
-
 
 /**
  * 📘 Obtener bloques de contenido del curso (versión mejorada)
@@ -327,36 +307,28 @@ exports.getQuizResults = async (req, res) => {
 /**
  * 💾 Guardar bloques de contenido del curso (versión mejorada)
  */
-/**
- * 💾 Guardar bloques de contenido del curso (solo profesores)
- */
 exports.saveCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { blocks } = req.body;
+    const { clerkId, blocks } = req.body;
 
-    const clerkId = req.headers["x-clerk-id"];
-    const user = await User.findOne({ where: { clerkId } });
-
-    // 🔐 Permitir solo a profesores
-    if (!user || user.role !== "teacher") {
-      return res.status(403).json({ error: "No autorizado" });
-    }
-
-    if (!courseId)
+    if (!courseId || !clerkId)
       return res.status(400).json({ error: "Faltan datos requeridos" });
 
     if (!Array.isArray(blocks))
       return res.status(400).json({ error: "Blocks debe ser un array" });
 
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findOne({
+      where: { id: courseId, creatorClerkId: clerkId },
+    });
+
     if (!course)
-      return res.status(404).json({ error: "Curso no encontrado" });
+      return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
 
     // 🔹 Eliminar bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
 
-    // 🔹 Guardar nuevos bloques en orden
+    // 🔹 Guardar nuevos bloques SECUENCIALMENTE para preservar orden
     const savedBlocks = [];
     for (let index = 0; index < blocks.length; index++) {
       const block = blocks[index];
@@ -379,11 +351,12 @@ exports.saveCourseBlocks = async (req, res) => {
         courseId,
         type: block.type,
         content: contentData,
-        position: index,
+        position: index, // Asignar posición secuencial
       });
       savedBlocks.push(saved);
     }
 
+    console.log("✅ Bloques guardados correctamente en orden:", savedBlocks.map(b => ({ id: b.id, position: b.position, type: b.type })));
     return res.json({
       success: true,
       message: "Bloques guardados correctamente",
