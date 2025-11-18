@@ -38,6 +38,7 @@ const getYoutubeEmbedUrl = (url) => {
 export default function CourseBuilder({ courseId, clerkId }) {
   const [blocks, setBlocks] = useState([]);
   const [message, setMessage] = useState("");
+  const [saveTimeout, setSaveTimeout] = useState(null);
 
   useEffect(() => {
     const loadBlocks = async () => {
@@ -73,6 +74,7 @@ export default function CourseBuilder({ courseId, clerkId }) {
   const persistBlocks = async (newBlocks) => {
     if (!clerkId) return;
     try {
+      console.log("💾 Guardando bloques:", newBlocks);
       await saveCourseBlocks(courseId, clerkId, newBlocks);
       setMessage("✅ Contenido guardado");
       setTimeout(() => setMessage(""), 2000);
@@ -82,6 +84,15 @@ export default function CourseBuilder({ courseId, clerkId }) {
     }
   };
 
+  // Debounce para evitar múltiples guardados simultáneos
+  const debouncedPersist = (newBlocks) => {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    const newTimeout = setTimeout(() => {
+      persistBlocks(newBlocks);
+    }, 800);
+    setSaveTimeout(newTimeout);
+  };
+
   const addBlock = (type) => {
     const newBlock =
       type === "quiz"
@@ -89,20 +100,20 @@ export default function CourseBuilder({ courseId, clerkId }) {
         : { id: Date.now().toString(), type, content: "", url: "" };
     const newBlocks = [...blocks, newBlock];
     setBlocks(newBlocks);
-    persistBlocks(newBlocks);
+    debouncedPersist(newBlocks);
   };
 
   const updateBlock = (index, field, value) => {
     const newBlocks = [...blocks];
     newBlocks[index] = { ...newBlocks[index], [field]: value };
     setBlocks(newBlocks);
-    persistBlocks(newBlocks);
+    debouncedPersist(newBlocks);
   };
 
   const removeBlock = (index) => {
     const newBlocks = blocks.filter((_, i) => i !== index);
     setBlocks(newBlocks);
-    persistBlocks(newBlocks);
+    debouncedPersist(newBlocks);
   };
 
   // 🔥 Nuevo: manejar reordenamiento visual
@@ -112,7 +123,7 @@ export default function CourseBuilder({ courseId, clerkId }) {
     const [moved] = reordered.splice(result.source.index, 1);
     reordered.splice(result.destination.index, 0, moved);
     setBlocks(reordered);
-    persistBlocks(reordered);
+    debouncedPersist(reordered);
   };
 
   return (

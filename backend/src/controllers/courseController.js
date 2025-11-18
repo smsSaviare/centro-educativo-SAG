@@ -243,6 +243,13 @@ exports.assignQuiz = async (req, res) => {
     const created = [];
 
     for (const clerkId of students) {
+      // 1️⃣ Crear o verificar Enrollment para que el estudiante vea el curso
+      await Enrollment.findOrCreate({
+        where: { courseId: parseInt(courseId), clerkId },
+        defaults: { courseId: parseInt(courseId), clerkId },
+      });
+
+      // 2️⃣ Crear o verificar QuizResult (asignación)
       const existing = await QuizResult.findOne({ where: { clerkId, courseId, quizBlockId } });
       if (!existing) {
         const row = await QuizResult.create({
