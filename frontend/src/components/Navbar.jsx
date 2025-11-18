@@ -26,7 +26,7 @@ export default function Navbar() {
   }, []);
 
   const navLinkClass =
-    "block px-4 py-2 hover:text-green-600 transition font-semibold cursor-pointer";
+    "block px-4 py-2 hover:text-green-500 transition font-semibold cursor-pointer";
 
   const handleLogout = async () => {
     try {
@@ -72,13 +72,6 @@ export default function Navbar() {
           Panel docente
         </div>
       )}
-
-      <div
-        onClick={() => goTo("/contacto")}
-        className={`${navLinkClass} bg-green-700 text-white rounded-full hover:bg-green-600 text-center`}
-      >
-        Contacto
-      </div>
     </>
   );
 
@@ -90,34 +83,34 @@ export default function Navbar() {
       className={`fixed top-0 left-0 w-full z-50 backdrop-blur-md transition-all duration-500 ${
         scrolled
           ? "bg-white/90 shadow-md"
-          : "bg-white/70 shadow-sm border-b border-green-100"
+          : "bg-white/70 shadow-sm border-b border-green-200"
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo */}
         <div
           onClick={() => goTo("/")}
-          className="text-2xl font-bold text-green-700 cursor-pointer"
+          className="text-2xl font-bold text-green-600 cursor-pointer"
         >
-          ✈️ Saviare
+          ☘️ Saviare LTDA
         </div>
 
         {/* Botón menú móvil */}
         <button
           onClick={() => setMenuOpen(!menuOpen)}
-          className="md:hidden p-2 text-green-700 hover:text-green-500 transition"
+          className="md:hidden p-2 text-green-600 hover:text-green-400 transition"
         >
           {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
 
         {/* Enlaces escritorio */}
-        <div className="hidden md:flex items-center space-x-6 text-green-800">
+        <div className="hidden md:flex items-center space-x-6 text-green-700">
           <NavLinks />
 
           <SignedOut>
             <div className="flex items-center space-x-3">
               <SignInButton mode="modal">
-                <button className="bg-green-700 text-white px-4 py-2 rounded-full hover:bg-green-600 transition">
+                <button className="bg-green-600 text-white px-4 py-2 rounded-full hover:bg-green-500 transition">
                   Acceder
                 </button>
               </SignInButton>
@@ -145,12 +138,12 @@ export default function Navbar() {
 
       {/* Menú móvil */}
       {menuOpen && (
-        <div className="md:hidden bg-white shadow-lg border-t border-green-100 text-green-800 px-6 py-4 space-y-3">
+        <div className="md:hidden bg-white shadow-lg border-t border-green-200 text-green-700 px-6 py-4 space-y-3">
           <NavLinks />
 
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="w-full bg-green-700 text-white py-2 rounded-full hover:bg-green-600">
+              <button className="w-full bg-green-600 text-white py-2 rounded-full hover:bg-green-500">
                 Acceder
               </button>
             </SignInButton>

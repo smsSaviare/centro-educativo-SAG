@@ -44,10 +44,15 @@ exports.getMyCourses = async (req, res) => {
     let courses = [];
 
     if (user.role === "teacher") {
+      // 👨‍🏫 Los docentes ven TODOS los cursos de todos los docentes
       courses = (
-        await Course.findAll({ where: { creatorClerkId: clerkId } })
+        await Course.findAll({
+          where: {},
+          attributes: { include: ["id", "title", "description", "image", "resources", "creatorClerkId", "createdAt"] },
+        })
       ).map((c) => c.toJSON());
     } else {
+      // 👨‍🎓 Los estudiantes ven solo los cursos donde están inscritos
       const enrollments = await Enrollment.findAll({ where: { clerkId } });
       const courseIds = enrollments.map((e) => e.courseId);
       if (courseIds.length > 0) {
