@@ -95,7 +95,7 @@ export default function Dashboard() {
             <div className="mb-6">
               <button
                 onClick={() => (window.location.href = "#/editor")}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition shadow-md"
+                className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-lg font-semibold transition shadow-md"
               >
                 ➕ Crear nuevo curso
               </button>
@@ -157,8 +157,8 @@ export default function Dashboard() {
                 onClick={() => setActiveTab("overview")}
                 className={`px-4 py-2 font-semibold transition ${
                   activeTab === "overview"
-                    ? "text-green-700 border-b-2 border-green-700"
-                    : "text-gray-600 hover:text-green-700"
+                    ? "text-green-600 border-b-2 border-green-600"
+                    : "text-gray-600 hover:text-green-600"
                 }`}
               >
                 Resumen
@@ -167,8 +167,8 @@ export default function Dashboard() {
                 onClick={() => setActiveTab("courses")}
                 className={`px-4 py-2 font-semibold transition ${
                   activeTab === "courses"
-                    ? "text-green-700 border-b-2 border-green-700"
-                    : "text-gray-600 hover:text-green-700"
+                    ? "text-green-600 border-b-2 border-green-600"
+                    : "text-gray-600 hover:text-green-600"
                 }`}
               >
                 Mis Cursos
@@ -177,8 +177,8 @@ export default function Dashboard() {
                 onClick={() => setActiveTab("students")}
                 className={`px-4 py-2 font-semibold transition ${
                   activeTab === "students"
-                    ? "text-green-700 border-b-2 border-green-700"
-                    : "text-gray-600 hover:text-green-700"
+                    ? "text-green-600 border-b-2 border-green-600"
+                    : "text-gray-600 hover:text-green-600"
                 }`}
               >
                 Estudiantes
@@ -187,8 +187,8 @@ export default function Dashboard() {
                 onClick={() => setActiveTab("results")}
                 className={`px-4 py-2 font-semibold transition ${
                   activeTab === "results"
-                    ? "text-green-700 border-b-2 border-green-700"
-                    : "text-gray-600 hover:text-green-700"
+                    ? "text-green-600 border-b-2 border-green-600"
+                    : "text-gray-600 hover:text-green-600"
                 }`}
               >
                 Resultados
@@ -205,35 +205,49 @@ export default function Dashboard() {
                 {/* TAB: Resumen */}
                 {activeTab === "overview" && (
                   <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-2xl font-bold text-green-800 mb-4">Resumen General</h2>
+                    <h2 className="text-2xl font-bold text-green-600 mb-4">Resumen General</h2>
                     {courses.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-gray-600 mb-4">No tienes cursos creados aún.</p>
                         <button
                           onClick={() => (window.location.href = "#/editor")}
-                          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold"
+                          className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-semibold"
                         >
                           Crear mi primer curso
                         </button>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {courses.map((course) => (
-                          <div key={course.id} className="border rounded-lg p-4 hover:shadow-md transition">
-                            <h3 className="text-lg font-semibold text-green-700 mb-2">{course.title}</h3>
-                            <p className="text-gray-600 text-sm mb-3">{course.description}</p>
-                            <div className="flex justify-between text-sm text-gray-700 mb-3">
-                              <span>👥 {courseStats[course.id]?.enrolledStudents || 0} estudiantes</span>
-                              <span>📋 {courseStats[course.id]?.quizCount || 0} quizzes</span>
+                        {courses.map((course) => {
+                          const isCreator = course.creatorClerkId === user?.id;
+                          return (
+                            <div key={course.id} className="border rounded-lg p-4 hover:shadow-md transition">
+                              <h3 className="text-lg font-semibold text-green-600 mb-1">{course.title}</h3>
+                              <p className="text-xs text-gray-500 mb-2">{isCreator ? "📌 Tu curso" : "👨‍🏫 Curso de otro docente"}</p>
+                              <p className="text-gray-600 text-sm mb-3">{course.description}</p>
+                              <div className="flex justify-between text-sm text-gray-700 mb-3">
+                                <span>👥 {courseStats[course.id]?.enrolledStudents || 0} estudiantes</span>
+                                <span>📋 {courseStats[course.id]?.quizCount || 0} quizzes</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <a
+                                  href={`#/course/${course.id}`}
+                                  className="text-green-600 hover:text-green-500 font-semibold inline-block"
+                                >
+                                  Ver curso →
+                                </a>
+                                {isCreator && (
+                                  <a
+                                    href={`#/editor?courseId=${course.id}`}
+                                    className="text-blue-600 hover:text-blue-500 font-semibold inline-block"
+                                  >
+                                    Editar
+                                  </a>
+                                )}
+                              </div>
                             </div>
-                            <a
-                              href={`#/course/${course.id}`}
-                              className="text-green-600 hover:text-green-800 font-semibold inline-block"
-                            >
-                              Ver curso →
-                            </a>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -242,7 +256,7 @@ export default function Dashboard() {
                 {/* TAB: Mis Cursos */}
                 {activeTab === "courses" && (
                   <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-2xl font-bold text-green-800 mb-4">Mis Cursos</h2>
+                    <h2 className="text-2xl font-bold text-green-600 mb-4">Mis Cursos</h2>
                     {courses.length === 0 ? (
                       <p className="text-gray-600 text-center py-8">No hay cursos.</p>
                     ) : (
@@ -251,6 +265,7 @@ export default function Dashboard() {
                           <thead className="bg-green-100 text-green-800 font-semibold">
                             <tr>
                               <th className="px-4 py-2 text-left">Curso</th>
+                              <th className="px-4 py-2 text-left">Creado por</th>
                               <th className="px-4 py-2 text-center">Estudiantes</th>
                               <th className="px-4 py-2 text-center">Quizzes</th>
                               <th className="px-4 py-2 text-center">Completados</th>
@@ -258,22 +273,34 @@ export default function Dashboard() {
                             </tr>
                           </thead>
                           <tbody>
-                            {courses.map((course) => (
-                              <tr key={course.id} className="border-b hover:bg-gray-50">
-                                <td className="px-4 py-3 font-semibold">{course.title}</td>
-                                <td className="px-4 py-3 text-center">{courseStats[course.id]?.enrolledStudents || 0}</td>
-                                <td className="px-4 py-3 text-center">{courseStats[course.id]?.quizCount || 0}</td>
-                                <td className="px-4 py-3 text-center">{courseStats[course.id]?.completedQuizzes || 0}</td>
-                                <td className="px-4 py-3 text-center">
-                                  <a
-                                    href={`#/course/${course.id}`}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-semibold"
-                                  >
-                                    Abrir
-                                  </a>
-                                </td>
-                              </tr>
-                            ))}
+                            {courses.map((course) => {
+                              const isCreator = course.creatorClerkId === user?.id;
+                              return (
+                                <tr key={course.id} className="border-b hover:bg-gray-50">
+                                  <td className="px-4 py-3 font-semibold">{course.title}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600">{isCreator ? "Yo" : "Otro docente"}</td>
+                                  <td className="px-4 py-3 text-center">{courseStats[course.id]?.enrolledStudents || 0}</td>
+                                  <td className="px-4 py-3 text-center">{courseStats[course.id]?.quizCount || 0}</td>
+                                  <td className="px-4 py-3 text-center">{courseStats[course.id]?.completedQuizzes || 0}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <a
+                                      href={`#/course/${course.id}`}
+                                      className="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-xs font-semibold"
+                                    >
+                                      Ver
+                                    </a>
+                                    {isCreator && (
+                                      <a
+                                        href={`#/editor?courseId=${course.id}`}
+                                        className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-semibold"
+                                      >
+                                        Editar
+                                      </a>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>
@@ -284,7 +311,7 @@ export default function Dashboard() {
                 {/* TAB: Estudiantes */}
                 {activeTab === "students" && (
                   <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-2xl font-bold text-green-800 mb-4">Estudiantes Inscritos</h2>
+                    <h2 className="text-2xl font-bold text-green-600 mb-4">Estudiantes Inscritos</h2>
                     {students.length === 0 ? (
                       <p className="text-gray-600 text-center py-8">No hay estudiantes inscritos.</p>
                     ) : (
@@ -322,7 +349,7 @@ export default function Dashboard() {
                 {/* TAB: Resultados */}
                 {activeTab === "results" && (
                   <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-2xl font-bold text-green-800 mb-4">Resultados de Quizzes</h2>
+                    <h2 className="text-2xl font-bold text-green-600 mb-4">Resultados de Quizzes</h2>
                     {allResults.length === 0 ? (
                       <p className="text-gray-600 text-center py-8">No hay resultados aún.</p>
                     ) : (
