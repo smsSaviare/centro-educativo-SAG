@@ -122,6 +122,14 @@ exports.updateCourse = async (req, res) => {
     const { courseId } = req.params;
     const { title, description, image, resources } = req.body;
 
+    const clerkId = req.headers["x-clerk-id"];
+    const user = await User.findOne({ where: { clerkId } });
+
+    // 🔐 Permitir solo a profesores
+    if (!user || user.role !== "teacher") {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
 
@@ -133,12 +141,24 @@ exports.updateCourse = async (req, res) => {
   }
 };
 
+
 /**
  * 🗑️ Borrar curso
+ */
+/**
+ * 🗑️ Borrar curso (solo profesores)
  */
 exports.deleteCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
+
+    const clerkId = req.headers["x-clerk-id"];
+    const user = await User.findOne({ where: { clerkId } });
+
+    // 🔐 Permitir solo a profesores
+    if (!user || user.role !== "teacher") {
+      return res.status(403).json({ error: "No autorizado" });
+    }
 
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
@@ -150,6 +170,7 @@ exports.deleteCourse = async (req, res) => {
     res.status(500).json({ error: "Error borrando curso" });
   }
 };
+
 
 /**
  * 📘 Obtener bloques de contenido del curso (versión mejorada)
@@ -306,10 +327,21 @@ exports.getQuizResults = async (req, res) => {
 /**
  * 💾 Guardar bloques de contenido del curso (versión mejorada)
  */
+/**
+ * 💾 Guardar bloques de contenido del curso (solo profesores)
+ */
 exports.saveCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { blocks } = req.body;
+
+    const clerkId = req.headers["x-clerk-id"];
+    const user = await User.findOne({ where: { clerkId } });
+
+    // 🔐 Permitir solo a profesores
+    if (!user || user.role !== "teacher") {
+      return res.status(403).json({ error: "No autorizado" });
+    }
 
     if (!courseId)
       return res.status(400).json({ error: "Faltan datos requeridos" });
@@ -318,14 +350,13 @@ exports.saveCourseBlocks = async (req, res) => {
       return res.status(400).json({ error: "Blocks debe ser un array" });
 
     const course = await Course.findByPk(courseId);
-
     if (!course)
       return res.status(404).json({ error: "Curso no encontrado" });
 
     // 🔹 Eliminar bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
 
-    // 🔹 Guardar nuevos bloques SECUENCIALMENTE para preservar orden
+    // 🔹 Guardar nuevos bloques en orden
     const savedBlocks = [];
     for (let index = 0; index < blocks.length; index++) {
       const block = blocks[index];
@@ -348,12 +379,11 @@ exports.saveCourseBlocks = async (req, res) => {
         courseId,
         type: block.type,
         content: contentData,
-        position: index, // Asignar posición secuencial
+        position: index,
       });
       savedBlocks.push(saved);
     }
 
-    console.log("✅ Bloques guardados correctamente en orden:", savedBlocks.map(b => ({ id: b.id, position: b.position, type: b.type })));
     return res.json({
       success: true,
       message: "Bloques guardados correctamente",
