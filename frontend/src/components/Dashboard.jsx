@@ -222,7 +222,7 @@ export default function Dashboard() {
                           return (
                             <div key={course.id} className="border rounded-lg p-4 hover:shadow-md transition">
                               <h3 className="text-lg font-semibold text-green-600 mb-1">{course.title}</h3>
-                              <p className="text-xs text-gray-500 mb-2">{isCreator ? "📌 Tu curso" : "👨‍🏫 Curso de otro docente"}</p>
+                              <p className="text-xs text-gray-500 mb-2">📌 Curso disponible</p>
                               <p className="text-gray-600 text-sm mb-3">{course.description}</p>
                               <div className="flex justify-between text-sm text-gray-700 mb-3">
                                 <span>👥 {courseStats[course.id]?.enrolledStudents || 0} estudiantes</span>
@@ -274,7 +274,7 @@ export default function Dashboard() {
                               return (
                                 <tr key={course.id} className="border-b hover:bg-gray-50">
                                   <td className="px-4 py-3 font-semibold">{course.title}</td>
-                                  <td className="px-4 py-3 text-sm text-gray-600">{isCreator ? "Yo" : "Otro docente"}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-600">Docente</td>
                                   <td className="px-4 py-3 text-center">{courseStats[course.id]?.enrolledStudents || 0}</td>
                                   <td className="px-4 py-3 text-center">{courseStats[course.id]?.quizCount || 0}</td>
                                   <td className="px-4 py-3 text-center">{courseStats[course.id]?.completedQuizzes || 0}</td>
