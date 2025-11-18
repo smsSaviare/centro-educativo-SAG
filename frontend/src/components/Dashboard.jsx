@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useUser, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import { getMyCourses, getStudents, getCourseBlocks, getQuizResults } from "../api";
-import DevLoginButton from "./DevLoginButton";
 import { BarChart3, Users, BookOpen, CheckCircle2 } from "lucide-react";
 
 export default function Dashboard() {
@@ -100,11 +99,6 @@ export default function Dashboard() {
               >
                 ➕ Crear nuevo curso
               </button>
-            </div>
-
-            {/* DevLoginButton */}
-            <div className="mb-6">
-              <DevLoginButton />
             </div>
 
             {/* Cards de estadísticas */}
