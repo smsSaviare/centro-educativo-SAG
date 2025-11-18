@@ -115,25 +115,34 @@ export default function CourseView() {
 
       const assigned = assignedMap[blockId];
       if (!assigned) {
+        console.warn("⚠️ No estás asignado a este quiz, blockId:", blockId);
         setMessage("No estás asignado a este quiz");
         return;
       }
 
-      if (assigned.score !== null && assigned.score !== undefined) {
+      // Verificar si ya se respondió (score !== null o attempts >= maxAttempts)
+      if (assigned.attempts >= assigned.maxAttempts) {
         setMessage("Ya completaste este quiz");
         return;
       }
 
+      console.log("📤 Enviando respuesta:", { blockId, selectedIndex, correctIndex, scoreVal, userId: user.id });
       const res = await submitQuizResult(id, user.id, blockId, scoreVal, { selectedIndex });
+      console.log("✅ Respuesta recibida del servidor:", res);
+      
       if (res && res.success) {
         // actualizar mapa local
         setAssignedMap((prev) => ({ ...prev, [blockId]: res.result }));
         setScores((prev) => ({ ...prev, [blockId]: scoreVal }));
         setMessage(isCorrect ? "✅ ¡Correcto!" : "❌ Incorrecto");
         setTimeout(() => setMessage(""), 1500);
+      } else {
+        console.error("❌ Respuesta sin éxito:", res);
+        setMessage("Error: " + (res?.error || "No se pudo guardar"));
+        setTimeout(() => setMessage(""), 2000);
       }
     } catch (err) {
-      console.error(err);
+      console.error("❌ Error en handleAnswer:", err);
       setMessage(err.message || "Error enviando resultado");
       setTimeout(() => setMessage(""), 2000);
     }
@@ -221,19 +230,31 @@ export default function CourseView() {
                   </p>
                   {(b.options || []).map((opt, i) => {
                     const assigned = assignedMap[b.id];
-                    const disabled = assigned ? (assigned.score !== null && assigned.score !== undefined) : true; // si no está asignado, bloquear
-                    const showResultStyle = assigned && assigned.score !== null && assigned.score !== undefined;
+                    
+                    // Solo deshabilitar si ya se respondió (attempts >= maxAttempts)
+                    const completed = assigned && assigned.attempts >= assigned.maxAttempts;
+                    
+                    // Mostrar estilos de resultado si está completado
+                    const showResultStyle = completed;
+                    const isCorrect = assigned && assigned.score === 1;
+                    const isSelectedOption = assigned && assigned.answers && assigned.answers.selectedIndex === i;
 
                     return (
                       <button
                         key={i}
-                        className={`block w-full text-left border p-2 rounded mb-2 hover:bg-gray-100 ${
-                          showResultStyle
-                            ? (assigned.score === 1 ? "bg-green-100 border-green-400" : "bg-red-50")
+                        className={`block w-full text-left border p-2 rounded mb-2 transition-colors ${
+                          !completed ? "hover:bg-gray-100 cursor-pointer" : "cursor-not-allowed opacity-60"
+                        } ${
+                          showResultStyle && isSelectedOption
+                            ? isCorrect 
+                              ? "bg-green-200 border-green-500 font-semibold"
+                              : "bg-red-200 border-red-500 font-semibold"
+                            : showResultStyle && i === b.correct
+                            ? "bg-green-100 border-green-400"
                             : ""
                         }`}
-                        onClick={() => handleAnswer(b.id, i, b.correct)}
-                        disabled={disabled}
+                        onClick={() => !completed && handleAnswer(b.id, i, b.correct)}
+                        disabled={completed}
                       >
                         {opt !== "" ? opt : `Opción ${i + 1}`}
                       </button>
@@ -279,8 +300,9 @@ export default function CourseView() {
                           <tbody>
                             {allResults.filter(r => r.quizBlockId === b.id).map((r) => (
                               <tr key={`${b.id}-${r.clerkId}`}>
-                                <td>{r.clerkId}</td>
+                                <td>{r.student ? `${r.student.firstName} ${r.student.lastName}` : r.clerkId}</td>
                                 <td>{r.score === null || r.score === undefined ? '—' : (r.score * 100) + '%'}</td>
+                                <td>{r.completedAt ? '✅' : '⏳'}</td>
                               </tr>
                             ))}
                           </tbody>
