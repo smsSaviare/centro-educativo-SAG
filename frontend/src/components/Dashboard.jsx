@@ -219,7 +219,6 @@ export default function Dashboard() {
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {courses.map((course) => {
-                          const isCreator = course.creatorClerkId === user?.id;
                           return (
                             <div key={course.id} className="border rounded-lg p-4 hover:shadow-md transition">
                               <h3 className="text-lg font-semibold text-green-600 mb-1">{course.title}</h3>
@@ -236,14 +235,12 @@ export default function Dashboard() {
                                 >
                                   Ver curso →
                                 </a>
-                                {isCreator && (
-                                  <a
-                                    href={`#/editor?courseId=${course.id}`}
-                                    className="text-blue-600 hover:text-blue-500 font-semibold inline-block"
-                                  >
-                                    Editar
-                                  </a>
-                                )}
+                                <a
+                                  href={`#/editor?courseId=${course.id}`}
+                                  className="text-blue-600 hover:text-blue-500 font-semibold inline-block"
+                                >
+                                  Editar
+                                </a>
                               </div>
                             </div>
                           );
@@ -274,7 +271,6 @@ export default function Dashboard() {
                           </thead>
                           <tbody>
                             {courses.map((course) => {
-                              const isCreator = course.creatorClerkId === user?.id;
                               return (
                                 <tr key={course.id} className="border-b hover:bg-gray-50">
                                   <td className="px-4 py-3 font-semibold">{course.title}</td>
@@ -289,14 +285,12 @@ export default function Dashboard() {
                                     >
                                       Ver
                                     </a>
-                                    {isCreator && (
-                                      <a
-                                        href={`#/editor?courseId=${course.id}`}
-                                        className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-semibold"
-                                      >
-                                        Editar
-                                      </a>
-                                    )}
+                                    <a
+                                      href={`#/editor?courseId=${course.id}`}
+                                      className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-semibold"
+                                    >
+                                      Editar
+                                    </a>
                                   </td>
                                 </tr>
                               );

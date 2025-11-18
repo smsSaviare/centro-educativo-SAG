@@ -121,12 +121,9 @@ exports.updateCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { title, description, image, resources } = req.body;
-    const clerkId = req.headers["x-clerk-id"];
 
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
-    if (course.creatorClerkId !== clerkId)
-      return res.status(403).json({ error: "No autorizado" });
 
     await course.update({ title, description, image, resources });
     res.json(course.toJSON());
@@ -142,12 +139,9 @@ exports.updateCourse = async (req, res) => {
 exports.deleteCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const clerkId = req.headers["x-clerk-id"];
 
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
-    if (course.creatorClerkId !== clerkId)
-      return res.status(403).json({ error: "No autorizado" });
 
     await course.destroy();
     res.json({ success: true, message: "Curso eliminado" });
@@ -315,20 +309,18 @@ exports.getQuizResults = async (req, res) => {
 exports.saveCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { clerkId, blocks } = req.body;
+    const { blocks } = req.body;
 
-    if (!courseId || !clerkId)
+    if (!courseId)
       return res.status(400).json({ error: "Faltan datos requeridos" });
 
     if (!Array.isArray(blocks))
       return res.status(400).json({ error: "Blocks debe ser un array" });
 
-    const course = await Course.findOne({
-      where: { id: courseId, creatorClerkId: clerkId },
-    });
+    const course = await Course.findByPk(courseId);
 
     if (!course)
-      return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
+      return res.status(404).json({ error: "Curso no encontrado" });
 
     // 🔹 Eliminar bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
