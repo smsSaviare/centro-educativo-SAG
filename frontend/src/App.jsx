@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./components/Home";
 import Dashboard from "./components/Dashboard";
+import MyCoursesStudent from "./components/MyCoursesStudent";
 import CourseView from "./components/CourseView";
 import CourseEditor from "./components/CourseEditor";
 import Contacto from "./components/Contacto";
@@ -135,7 +136,7 @@ function App() {
           element={
             <>
               <SignedIn>
-                <Dashboard />
+                {user?.publicMetadata?.role === "teacher" ? <Dashboard /> : <MyCoursesStudent />}
               </SignedIn>
               <SignedOut>
                 <RedirectToSignIn />
