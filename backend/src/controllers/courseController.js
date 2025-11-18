@@ -161,7 +161,7 @@ exports.getCourseBlocks = async (req, res) => {
 
     const blocks = await CourseBlock.findAll({
       where: { courseId },
-      order: [["id", "ASC"]],
+      order: [["position", "ASC"]],
     });
 
     const formatted = blocks.map((b) => {
@@ -321,33 +321,35 @@ exports.saveCourseBlocks = async (req, res) => {
     // 🔹 Eliminar bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
 
-    // 🔹 Guardar nuevos bloques
-    const savedBlocks = await Promise.all(
-      blocks.map(async (block) => {
-        let contentData = {};
+    // 🔹 Guardar nuevos bloques SECUENCIALMENTE para preservar orden
+    const savedBlocks = [];
+    for (let index = 0; index < blocks.length; index++) {
+      const block = blocks[index];
+      let contentData = {};
 
-        if (block.type === "quiz") {
-          contentData = {
-            question: block.question || "",
-            options: block.options || [],
-            correct: block.correct ?? 0,
-          };
-        } else {
-          contentData = {
-            text: block.content || "",
-            url: block.url || "",
-          };
-        }
+      if (block.type === "quiz") {
+        contentData = {
+          question: block.question || "",
+          options: block.options || [],
+          correct: block.correct ?? 0,
+        };
+      } else {
+        contentData = {
+          text: block.content || "",
+          url: block.url || "",
+        };
+      }
 
-        return CourseBlock.create({
-          courseId,
-          type: block.type,
-          content: contentData,
-        });
-      })
-    );
+      const saved = await CourseBlock.create({
+        courseId,
+        type: block.type,
+        content: contentData,
+        position: index, // Asignar posición secuencial
+      });
+      savedBlocks.push(saved);
+    }
 
-    console.log("✅ Bloques guardados correctamente:", savedBlocks);
+    console.log("✅ Bloques guardados correctamente en orden:", savedBlocks.map(b => ({ id: b.id, position: b.position, type: b.type })));
     return res.json({
       success: true,
       message: "Bloques guardados correctamente",
