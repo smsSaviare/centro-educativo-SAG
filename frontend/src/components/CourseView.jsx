@@ -78,8 +78,9 @@ export default function CourseView() {
                 });
                 setAssignedMap(map);
 
-                // Si soy el profesor creador, cargar todos los resultados y lista de estudiantes
-                if (courseData && courseData.creatorClerkId === user.id) {
+                // Si soy profesor, cargar todos los resultados y lista de estudiantes
+                const userRole = user.publicMetadata?.role;
+                if (userRole === "teacher") {
                   const all = await getQuizResults(id);
                   setAllResults(all || []);
                   const studs = await getStudents(user.id);
@@ -261,8 +262,8 @@ export default function CourseView() {
                     );
                   })}
 
-                  {/* Si soy el profesor creador, mostrar controles de asignación y resultados por estudiante */}
-                  {course?.creatorClerkId === user?.id && (
+                  {/* Si soy profesor, mostrar controles de asignación y resultados por estudiante */}
+                  {user?.publicMetadata?.role === "teacher" && (
                     <div className="mt-3 border-t pt-3">
                       <h4 className="font-semibold">Asignar este quiz a un estudiante</h4>
                       <div className="flex gap-2 mt-2">
