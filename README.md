@@ -1,20 +1,21 @@
-# Centro Educativo SAG — Plataforma de Aprendizaje en Instrumentación, Control y Sistemas Embebidos
+# Plataforma Educativa — Centro Educativo SAVIARE
 
-El **Centro Educativo SAG** es una plataforma educativa diseñada para apoyar el aprendizaje práctico de instrumentación, control, sistemas embebidos, programación y simulación.  
-Este repositorio contiene el código fuente del sistema web, la documentación técnica y los manuales oficiales del proyecto.
+Este repositorio contiene el código fuente, documentación y estructura general de la **Plataforma Educativa de SAVIARE LTDA**, un entorno web diseñado para apoyar procesos formativos mediante módulos interactivos, recursos digitales y herramientas de aprendizaje modernas.
+
+La plataforma está orientada a instituciones, instructores y estudiantes que requieren un ecosistema centralizado, fácil de usar y adaptable a diferentes programas académicos.
 
 ---
 
 ## 🚀 Características Principales
 
-- Arquitectura moderna basada en:
-  - **React** como frontend.
-  - **Flask** como backend.
-- Autenticación segura mediante **Clerk**.
-- Plataforma pensada para módulos educativos prácticos.
-- Documentación técnica y de usuario profesional.
-- Interfaz moderna, adaptable y de fácil navegación.
-- Orientado a escalabilidad y crecimiento continuo del contenido académico.
+- Diseño moderno y responsivo.  
+- Arquitectura basada en:
+  - **React** para el frontend.
+  - **Flask** para el backend.
+- Sistema de autenticación seguro mediante **Clerk**.
+- Gestión de cursos, módulos, materiales y usuarios.  
+- Navegación optimizada para facilitar el acceso a contenidos educativos.  
+- Estructura escalable para incorporar nuevos programas, cursos o herramientas.
 
 ---
 
@@ -33,36 +34,25 @@ Este repositorio contiene el código fuente del sistema web, la documentación t
 - JWT  
 
 ### **Infraestructura**
-- GitHub Pages / Vercel (según despliegue)
-- API REST con Flask  
-- Arquitectura cliente–servidor
-
----
-
-## 📘 Documentación
-
-Toda la documentación del proyecto se encuentra en la carpeta `docs/`:
-
-- **Informe Final del Proyecto**  
-- **Manual de Usuario**  
-- **Manual Técnico**
+- API REST basada en Flask  
+- Despliegue en GitHub Pages / Vercel (según configuración)
+- Arquitectura cliente–servidor modular
 
 ---
 
 ## 📌 Estado del Proyecto
 
-El desarrollo está activo y en expansión.  
-Actualizaciones previstas:
+El proyecto se encuentra en desarrollo activo.  
+Próximas mejoras incluyen:
 
-- Integración de dashboards personalizados  
-- Módulos educativos adicionales  
-- Mejoras de rendimiento y accesibilidad  
-- Nuevas funcionalidades para estudiantes y docentes  
+- Panel administrativo mejorado  
+- Dashboards personalizados  
+- Nuevas herramientas para cursos interactivos  
+- Integración de analíticas de aprendizaje  
 
 ---
 
 ## 👤 Autor
 
 **Juan Tibaduiza — smsSaviare**  
-Desarrollador del Centro Educativo SAG  
-Apasionado por los sistemas embebidos, el control, la educación tecnológica y el desarrollo de software.
+Desarrollador de la plataforma educativa para SAVIARE LTDA.
