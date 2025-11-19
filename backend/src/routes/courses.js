@@ -8,6 +8,7 @@ const {
   assignStudent,
   assignQuiz,
   saveQuizResult,
+  getCourseEnrollments,
   getQuizResults,
   updateCourse,
   deleteCourse,
@@ -55,4 +56,6 @@ router.post('/:courseId/quiz/submit', saveQuizResult);
 
 // Obtener resultados del curso (opcional clerkId query para filtrar por estudiante)
 router.get('/:courseId/quiz/results', getQuizResults);
+// Obtener enrollments (inscripciones) del curso
+router.get('/:courseId/enrollments', getCourseEnrollments);
 module.exports = router;

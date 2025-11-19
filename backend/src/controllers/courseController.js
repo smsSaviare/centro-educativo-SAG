@@ -319,6 +319,24 @@ exports.getQuizResults = async (req, res) => {
   }
 };
 
+/**
+ * 📥 Obtener enrollments (inscripciones) de un curso
+ */
+exports.getCourseEnrollments = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    if (!courseId) return res.status(400).json({ error: "Falta courseId" });
+
+    // traer inscripciones y datos de usuario si están disponibles
+    const enrolls = await Enrollment.findAll({ where: { courseId } });
+
+    res.json(enrolls.map(e => e.toJSON()));
+  } catch (err) {
+    console.error("❌ Error obteniendo enrollments:", err);
+    res.status(500).json({ error: "Error obteniendo inscripciones" });
+  }
+};
+
 
 /**
  * 💾 Guardar bloques de contenido del curso (versión mejorada)

@@ -89,6 +89,11 @@ export async function getQuizResults(courseId, clerkId) {
   return apiRequest(`/courses/${courseId}/quiz/results${query}`, { method: "GET", clerkId });
 }
 
+// Obtener enrollments (inscripciones) de un curso
+export async function getEnrollments(courseId, clerkId) {
+  return apiRequest(`/courses/${courseId}/enrollments`, { method: "GET", clerkId });
+}
+
 // Guardar bloques de un curso
 export const saveCourseBlocks = async (courseId, clerkId, blocks) => {
   // Si por algún motivo clerkId es array, tomar el primero

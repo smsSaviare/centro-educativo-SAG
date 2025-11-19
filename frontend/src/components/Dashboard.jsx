@@ -42,12 +42,26 @@ export default function Dashboard() {
           // Obtener resultados del curso
           const results = await getQuizResults(course.id);
           allQuizResults.push(...(results || []));
-          
+
+          // Obtener enrollments para contar inscripciones que no tienen quiz asignado aún
+          let enrollments = [];
+          try {
+            enrollments = await getEnrollments(course.id);
+          } catch (e) {
+            // si falla, seguimos con los resultados como fallback
+            console.warn('No se pudo obtener enrollments:', e);
+            enrollments = [];
+          }
+
+          // combinar clerkIds de results y enrollments para obtener inscritos únicos
+          const enrolledIds = new Set([
+            ...(results || []).map(r => r.clerkId),
+            ...(enrollments || []).map(e => e.clerkId),
+          ]);
+
           stats[course.id] = {
             quizCount,
-            enrolledStudents: new Set(
-              (results || []).map(r => r.clerkId)
-            ).size,
+            enrolledStudents: enrolledIds.size,
             completedQuizzes: (results || []).filter(r => r.completedAt).length,
           };
         }
