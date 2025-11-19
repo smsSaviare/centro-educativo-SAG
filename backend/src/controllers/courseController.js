@@ -306,11 +306,14 @@ exports.getQuizResults = async (req, res) => {
       userMap[u.clerkId] = { firstName: u.firstName, lastName: u.lastName, email: u.email };
     });
 
-    const enriched = results.map(r => {
-      const row = r.toJSON();
-      row.student = userMap[row.clerkId] || null;
-      return row;
-    });
+    // Filtrar resultados para excluir aquellos pertenecientes a users eliminados
+    const enriched = results
+      .map((r) => {
+        const row = r.toJSON();
+        row.student = userMap[row.clerkId] || null;
+        return row;
+      })
+      .filter((row) => row.student !== null); // sólo devolver resultados con usuario existente
 
     res.json(enriched);
   } catch (err) {
@@ -327,10 +330,27 @@ exports.getCourseEnrollments = async (req, res) => {
     const { courseId } = req.params;
     if (!courseId) return res.status(400).json({ error: "Falta courseId" });
 
-    // traer inscripciones y datos de usuario si están disponibles
+    // traer inscripciones
     const enrolls = await Enrollment.findAll({ where: { courseId } });
 
-    res.json(enrolls.map(e => e.toJSON()));
+    // obtener datos de usuario para los clerkIds encontrados
+    const clerkIds = Array.from(new Set(enrolls.map((e) => e.clerkId)));
+    const users = clerkIds.length > 0 ? await User.findAll({ where: { clerkId: clerkIds } }) : [];
+    const userMap = {};
+    users.forEach((u) => {
+      userMap[u.clerkId] = { firstName: u.firstName, lastName: u.lastName, email: u.email };
+    });
+
+    // enriquecer y filtrar enrollments para excluir usuarios eliminados
+    const enriched = enrolls
+      .map((e) => {
+        const row = e.toJSON();
+        row.student = userMap[row.clerkId] || null;
+        return row;
+      })
+      .filter((r) => r.student !== null);
+
+    res.json(enriched);
   } catch (err) {
     console.error("❌ Error obteniendo enrollments:", err);
     res.status(500).json({ error: "Error obteniendo inscripciones" });
