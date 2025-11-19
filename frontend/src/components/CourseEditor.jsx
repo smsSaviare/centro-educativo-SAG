@@ -190,32 +190,30 @@ export default function CourseEditor() {
               >
                 <div className="flex justify-between items-center">
                   <h4 className="font-bold text-lg text-gray-700">{c.title}</h4>
-                  {c.creatorClerkId === clerkId && (
-                    <div className="flex gap-2">
-                      <button
-                        className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                        onClick={() => handleEditCourse(c)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                        onClick={() => handleDeleteCourse(c.id)}
-                      >
-                        Borrar
-                      </button>
-                      <button
-                        className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                        onClick={() =>
-                          setExpandedCourseId(
-                            expandedCourseId === c.id ? null : c.id
-                          )
-                        }
-                      >
-                        {expandedCourseId === c.id ? "Ocultar" : "Asignar"}
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex gap-2">
+                    <button
+                      className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                      onClick={() => handleEditCourse(c)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                      onClick={() => handleDeleteCourse(c.id)}
+                    >
+                      Borrar
+                    </button>
+                    <button
+                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                      onClick={() =>
+                        setExpandedCourseId(
+                          expandedCourseId === c.id ? null : c.id
+                        )
+                      }
+                    >
+                      {expandedCourseId === c.id ? "Ocultar" : "Asignar"}
+                    </button>
+                  </div>
                 </div>
 
                 {expandedCourseId === c.id && (
