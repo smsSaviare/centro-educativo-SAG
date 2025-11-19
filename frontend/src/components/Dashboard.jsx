@@ -96,7 +96,8 @@ export default function Dashboard() {
     );
   }
 
-  const totalStudents = new Set(allResults.map(r => r.clerkId)).size;
+  // Usar la lista `students` (pestaña Estudiantes) como fuente única de verdad
+  const totalStudents = Array.isArray(students) ? students.length : 0;
   const totalQuizzesCompleted = allResults.filter(r => r.completedAt).length;
   const totalCourses = courses.length;
 
