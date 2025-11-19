@@ -44,9 +44,8 @@ exports.getMyCourses = async (req, res) => {
     let courses = [];
 
     if (user.role === "teacher") {
-      courses = (
-        await Course.findAll({ where: { creatorClerkId: clerkId } })
-      ).map((c) => c.toJSON());
+      // Los profesores ven TODOS los cursos
+      courses = (await Course.findAll()).map((c) => c.toJSON());
     } else {
       const enrollments = await Enrollment.findAll({ where: { clerkId } });
       const courseIds = enrollments.map((e) => e.courseId);
@@ -87,9 +86,15 @@ exports.assignStudent = async (req, res) => {
   try {
     const { courseId } = req.params;
     let { studentClerkId } = req.body;
+    const clerkId = req.headers["x-clerk-id"];
 
     if (!courseId || !studentClerkId)
       return res.status(400).json({ error: "Faltan datos" });
+
+    // Verificar que el usuario sea profesor
+    const user = await User.findOne({ where: { clerkId } });
+    if (!user || user.role !== "teacher")
+      return res.status(403).json({ error: "No autorizado" });
 
     if (!Array.isArray(studentClerkId)) studentClerkId = [studentClerkId];
 
@@ -120,7 +125,10 @@ exports.updateCourse = async (req, res) => {
 
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
-    if (course.creatorClerkId !== clerkId)
+    
+    // Verificar que el usuario sea profesor
+    const user = await User.findOne({ where: { clerkId } });
+    if (!user || user.role !== "teacher")
       return res.status(403).json({ error: "No autorizado" });
 
     await course.update({ title, description, image, resources });
@@ -141,7 +149,10 @@ exports.deleteCourse = async (req, res) => {
 
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
-    if (course.creatorClerkId !== clerkId)
+    
+    // Verificar que el usuario sea profesor
+    const user = await User.findOne({ where: { clerkId } });
+    if (!user || user.role !== "teacher")
       return res.status(403).json({ error: "No autorizado" });
 
     await course.destroy();
@@ -239,6 +250,11 @@ exports.assignQuiz = async (req, res) => {
     if (!courseId || !quizBlockId || !studentClerkId)
       return res.status(400).json({ error: "Faltan datos requeridos" });
 
+    // Verificar que el usuario sea profesor
+    const user = await User.findOne({ where: { clerkId: assignedBy } });
+    if (!user || user.role !== "teacher")
+      return res.status(403).json({ error: "No autorizado" });
+
     const students = Array.isArray(studentClerkId) ? studentClerkId : [studentClerkId];
     const created = [];
 
@@ -318,12 +334,15 @@ exports.saveCourseBlocks = async (req, res) => {
     if (!Array.isArray(blocks))
       return res.status(400).json({ error: "Blocks debe ser un array" });
 
-    const course = await Course.findOne({
-      where: { id: courseId, creatorClerkId: clerkId },
-    });
-
+    // Verificar que el curso exista
+    const course = await Course.findByPk(courseId);
     if (!course)
-      return res.status(404).json({ error: "Curso no encontrado o sin permiso" });
+      return res.status(404).json({ error: "Curso no encontrado" });
+
+    // Verificar que el usuario sea profesor
+    const user = await User.findOne({ where: { clerkId } });
+    if (!user || user.role !== "teacher")
+      return res.status(403).json({ error: "No autorizado" });
 
     // 🔹 Eliminar bloques anteriores
     await CourseBlock.destroy({ where: { courseId } });
