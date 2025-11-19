@@ -1,27 +1,68 @@
 # Centro Educativo SAG — Plataforma de Aprendizaje en Instrumentación, Control y Sistemas Embebidos
 
-Bienvenido al repositorio oficial del **Centro Educativo SAG**, una plataforma educativa moderna diseñada para facilitar el aprendizaje práctico de **Arduino, ESP32, Simulink, Scilab, instrumentación y control automático**.  
-Este proyecto integra componentes físicos, módulos virtuales, documentación técnica y un entorno web escalable para brindar una experiencia educativa completa.
+El **Centro Educativo SAG** es una plataforma educativa diseñada para apoyar el aprendizaje práctico de instrumentación, control, sistemas embebidos, programación y simulación.  
+Este repositorio contiene el código fuente del sistema web, la documentación técnica y los manuales oficiales del proyecto.
 
 ---
 
 ## 🚀 Características Principales
 
-- **Arquitectura moderna**: Frontend en **React** y backend en **Flask**.  
-- **Diseño escalable y seguro** con autenticación basada en *Clerk*.  
-- **Módulos de aprendizaje prácticos** con proyectos reales de:
-  - Control de velocidad y posición
-  - Teoría de control
-  - Sensores y actuadores
-  - Sistemas embebidos con ESP32
-  - Simulación en Simulink y Scilab
-- **Documentación completa**:  
-  - Informe Final del Proyecto  
-  - Manual de Usuario  
-  - Manual Técnico  
-- **Integración con hardware real** (ESP32 + servo + OLED + encoder).
+- Arquitectura moderna basada en:
+  - **React** como frontend.
+  - **Flask** como backend.
+- Autenticación segura mediante **Clerk**.
+- Plataforma pensada para módulos educativos prácticos.
+- Documentación técnica y de usuario profesional.
+- Interfaz moderna, adaptable y de fácil navegación.
+- Orientado a escalabilidad y crecimiento continuo del contenido académico.
 
 ---
 
-## 📂 Estructura del Proyecto
+## 🛠️ Tecnologías Utilizadas
 
+### **Frontend**
+- React + Vite  
+- TailwindCSS  
+- shadcn/ui  
+- Clerk Authentication  
+
+### **Backend**
+- Python  
+- Flask  
+- SQLAlchemy  
+- JWT  
+
+### **Infraestructura**
+- GitHub Pages / Vercel (según despliegue)
+- API REST con Flask  
+- Arquitectura cliente–servidor
+
+---
+
+## 📘 Documentación
+
+Toda la documentación del proyecto se encuentra en la carpeta `docs/`:
+
+- **Informe Final del Proyecto**  
+- **Manual de Usuario**  
+- **Manual Técnico**
+
+---
+
+## 📌 Estado del Proyecto
+
+El desarrollo está activo y en expansión.  
+Actualizaciones previstas:
+
+- Integración de dashboards personalizados  
+- Módulos educativos adicionales  
+- Mejoras de rendimiento y accesibilidad  
+- Nuevas funcionalidades para estudiantes y docentes  
+
+---
+
+## 👤 Autor
+
+**Juan Tibaduiza — smsSaviare**  
+Desarrollador del Centro Educativo SAG  
+Apasionado por los sistemas embebidos, el control, la educación tecnológica y el desarrollo de software.
