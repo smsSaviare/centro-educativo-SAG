@@ -63,6 +63,24 @@ function App() {
     if (isSignedIn && user) syncUserToBackend(user, getToken);
   }, [isSignedIn, user]);
 
+  // Dispatch an event so other parts of the app (e.g. Dashboard) can refresh
+  // when a user is synced with the backend.
+  useEffect(() => {
+    async function doSync() {
+      if (isSignedIn && user) {
+        await syncUserToBackend(user, getToken);
+        try {
+          window.dispatchEvent(new CustomEvent("userSynced", { detail: { clerkId: user.id } }));
+        } catch (err) {
+          console.warn("No se pudo emitir evento userSynced:", err);
+        }
+      }
+    }
+
+    doSync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, user]);
+
   // Clerk maneja automáticamente la renovación de tokens
   // Removido el refresh manual que causaba interrupciones en videos
 

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useUser, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
-import { getMyCourses, getStudents, getCourseBlocks, getQuizResults } from "../api";
+import { getMyCourses, getStudents, getCourseBlocks, getQuizResults, getEnrollments } from "../api";
 import { BarChart3, Users, BookOpen, CheckCircle2 } from "lucide-react";
 
 export default function Dashboard() {
@@ -15,66 +15,78 @@ export default function Dashboard() {
 
   const role = user?.publicMetadata?.role || "student";
 
-  useEffect(() => {
+  const loadDashboardData = useCallback(async () => {
     if (!clerkId || role !== "teacher") return;
-    
-    (async () => {
-      try {
-        setLoading(true);
-        
-        // Obtener mis cursos
-        const coursesData = await getMyCourses(clerkId);
-        setCourses(coursesData || []);
-        
-        // Obtener todos los estudiantes
-        const studentsData = await getStudents(clerkId);
-        setStudents(studentsData || []);
+    try {
+      setLoading(true);
 
-        // Obtener stats de cada curso
-        const stats = {};
-        const allQuizResults = [];
-        
-        for (const course of coursesData || []) {
-          // Contar quizzes en el curso
-          const blocks = await getCourseBlocks(course.id);
-          const quizCount = (blocks.blocks || []).filter(b => b.type === "quiz").length;
-          
-          // Obtener resultados del curso
-          const results = await getQuizResults(course.id);
-          allQuizResults.push(...(results || []));
+      // Obtener mis cursos
+      const coursesData = await getMyCourses(clerkId);
+      setCourses(coursesData || []);
 
-          // Obtener enrollments para contar inscripciones que no tienen quiz asignado aún
-          let enrollments = [];
-          try {
-            enrollments = await getEnrollments(course.id);
-          } catch (e) {
-            // si falla, seguimos con los resultados como fallback
-            console.warn('No se pudo obtener enrollments:', e);
-            enrollments = [];
-          }
+      // Obtener todos los estudiantes
+      const studentsData = await getStudents(clerkId);
+      setStudents(studentsData || []);
 
-          // combinar clerkIds de results y enrollments para obtener inscritos únicos
-          const enrolledIds = new Set([
-            ...(results || []).map(r => r.clerkId),
-            ...(enrollments || []).map(e => e.clerkId),
-          ]);
+      // Obtener stats de cada curso
+      const stats = {};
+      const allQuizResults = [];
 
-          stats[course.id] = {
-            quizCount,
-            enrolledStudents: enrolledIds.size,
-            completedQuizzes: (results || []).filter(r => r.completedAt).length,
-          };
+      for (const course of coursesData || []) {
+        // Contar quizzes en el curso
+        const blocks = await getCourseBlocks(course.id);
+        const quizCount = (blocks.blocks || []).filter((b) => b.type === "quiz").length;
+
+        // Obtener resultados del curso
+        const results = await getQuizResults(course.id);
+        allQuizResults.push(...(results || []));
+
+        // Obtener enrollments para contar inscripciones que no tienen quiz asignado aún
+        let enrollments = [];
+        try {
+          enrollments = await getEnrollments(course.id);
+        } catch (e) {
+          // si falla, seguimos con los resultados como fallback
+          console.warn("No se pudo obtener enrollments:", e);
+          enrollments = [];
         }
-        
-        setCourseStats(stats);
-        setAllResults(allQuizResults);
-      } catch (e) {
-        console.error("❌ Error cargando dashboard:", e);
-      } finally {
-        setLoading(false);
+
+        // combinar clerkIds de results y enrollments para obtener inscritos únicos
+        const enrolledIds = new Set([
+          ...(results || []).map((r) => r.clerkId),
+          ...(enrollments || []).map((e) => e.clerkId),
+        ]);
+
+        stats[course.id] = {
+          quizCount,
+          enrolledStudents: enrolledIds.size,
+          completedQuizzes: (results || []).filter((r) => r.completedAt).length,
+        };
       }
-    })();
+
+      setCourseStats(stats);
+      setAllResults(allQuizResults);
+    } catch (e) {
+      console.error("❌ Error cargando dashboard:", e);
+    } finally {
+      setLoading(false);
+    }
   }, [clerkId, role]);
+
+  // carga inicial y cuando cambian clerkId/role
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  // Escuchar evento global que indica que un usuario fue sincronizado
+  useEffect(() => {
+    function onUserSynced() {
+      // recargar datos del dashboard
+      loadDashboardData();
+    }
+    window.addEventListener("userSynced", onUserSynced);
+    return () => window.removeEventListener("userSynced", onUserSynced);
+  }, [loadDashboardData]);
 
   if (role !== "teacher") {
     return (
