@@ -14,74 +14,70 @@ Fecha de última actualización: 19 de noviembre de 2025
 2) Cambios principales realizados
 --------------------------------
 
-- Backend (Express + Sequelize)
-	- Revisión de permisos: varias funciones (`updateCourse`, `deleteCourse`, `assignStudent`, `assignQuiz`, `saveCourseBlocks`) ahora verifican el rol del usuario (`User.role === 'teacher'`) en lugar de requerir que el usuario sea el creador.
-	- Endpoint nuevo: `GET /courses/:courseId/enrollments` — retorna inscripciones válidas (enrich con datos de `Users`) y excluye registros sin usuario.
-	- `getQuizResults` modificado para filtrar resultados que pertenezcan a `clerkId` inexistentes (evita mostrar resultados de usuarios borrados).
-	- `getMyCourses` modificado: los profesores ven todos los cursos (antes solo los creados por ellos).
-	- Manejo de enrollments/quizresults: creación mediante `findOrCreate` para evitar duplicados.
+## Descripción clara y completa (leer primero)
 
-- Frontend (React + Vite)
-	- Interfaz: `CourseEditor.jsx` y `CourseView.jsx` muestran ahora los botones `Editar`, `Borrar`, `Asignar` a cualquier `teacher`.
-	- `Dashboard.jsx` refactorizado: se centralizó la carga en `loadDashboardData()`; la tarjeta "Estudiantes Inscritos" usa la lista `students` (fuente única de verdad) y el dashboard combina `Enrollments` + `QuizResults` para conteos por curso.
-	- Evento global: `App.jsx` despacha `userSynced` una vez que sincroniza un usuario con el backend; `Dashboard` escucha ese evento y recarga datos automáticamente.
-	- Cliente API: `getEnrollments(courseId)` añadido en `frontend/src/api.js`.
+Este repositorio contiene una aplicación full-stack para la gestión de cursos, estudiantes y quizzes. El trabajo realizado se centró en dos objetivos principales:
 
-3) Problemas detectados y soluciones aplicadas
---------------------------------------------
+- Dar a cualquier usuario con rol `teacher` permisos reales para gestionar cursos (crear/editar/asignar/borrar), sin necesidad de ser el creador original del curso.
+- Hacer que el Panel Docente muestre inscripciones reales y coherentes, y que se actualice cuando se crean o eliminan usuarios, evitando que datos huérfanos influyan en la interfaz.
 
-- Problema: el Dashboard no reflejaba inscripciones reales hasta que se asignaba un quiz.
-	- Causa: el conteo se derivaba exclusivamente de `QuizResults`.
-	- Solución: usar `students.length` como fuente para el total y combinar `Enrollments` + `QuizResults` para conteos por curso; añadir endpoint `GET /courses/:id/enrollments`.
+Si entras al repo y quieres entender qué se hizo, lee esta sección completa y luego revisa los archivos referenciados en "Dónde mirar".
 
-- Problema: usuarios eliminados manualmente en Clerk/pgAdmin dejaban filas huérfanas en `Enrollments` y `QuizResults` y seguían contando en la UI.
-	- Solución: backend filtra y enriquece enrollments/results con datos de `Users` existentes; se propuso SQL de limpieza y recomendaciones de FK.
+### Qué se implementó (resumen ejecutivo)
 
-4) Endpoints clave añadidos o modificados (resumen)
--------------------------------------------------
-- `POST /sync-user` (existente): sincroniza usuario Clerk → tabla `Users`.
-- `GET /courses/:courseId/enrollments` (nuevo): enrollments válidos con datos de usuario.
-- `GET /courses/:courseId/quiz/results` (modificado): ahora filtra por usuarios existentes.
-- `POST /courses/:courseId/assign`: crea `Enrollment`.
-- `POST /courses/:courseId/blocks/:quizBlockId/assign`: crea `Enrollment` + `QuizResult` si no existen.
-- Operaciones `PUT/DELETE /courses/:id` ahora autorizadas por rol `teacher`.
+- Permisos por rol: las operaciones de mantenimiento de cursos (`update`, `delete`, `assign`, etc.) ahora validan que el usuario tenga `role === 'teacher'`, en lugar de exigir que sea el `creator` del curso.
+- Endpoint nuevo para enrollments: `GET /courses/:courseId/enrollments` que devuelve inscripciones válidas y enriquecidas con datos de `Users` (filtra registros huérfanos).
+- Dashboard mejorado: el conteo principal de "Estudiantes Inscritos" proviene de la lista `students` (fuente de verdad). El dashboard combina `Enrollments` y `QuizResults` para estadísticas por curso.
+- Sincronización y recarga: la app cliente despacha un evento `userSynced` después de sincronizar un usuario con el backend; el `Dashboard` escucha y recarga datos automáticamente.
+- Filtrado de huérfanos: el backend excluye `Enrollments` y `QuizResults` que referencian `clerkId` sin un `User` existente.
 
-5) Limpieza de datos (opcional)
-------------------------------
-Se dejó una recomendación SQL para eliminar filas huérfanas en la base de datos (hacer backup previo):
+### Dónde mirar (files clave)
 
-```sql
-DELETE FROM "Enrollments" e
-WHERE e."clerkId" NOT IN (SELECT u."clerkId" FROM "Users" u);
+- Backend
+  - `backend/src/controllers/courseController.js`: lógica central de cursos; permisos actualizados; nuevo método `getCourseEnrollments`; `getQuizResults` filtra resultados huérfanos.
+  - `backend/src/routes/courses.js`: se registró la ruta `GET /:courseId/enrollments`.
+  - `backend/src/models/*`: modelos `User`, `Course`, `Enrollment`, `QuizResult`.
 
-DELETE FROM "QuizResults" q
-WHERE q."clerkId" NOT IN (SELECT u."clerkId" FROM "Users" u);
-```
+- Frontend
+  - `frontend/src/components/Dashboard.jsx`: carga combinada de datos, `loadDashboardData()`, escucha `userSynced` y uso de `students.length` para el total.
+  - `frontend/src/components/CourseEditor.jsx` y `CourseView.jsx`: controles visibles para cualquier `teacher` (Editar/Borrar/Asignar).
+  - `frontend/src/api.js`: cliente HTTP, con la nueva función `getEnrollments(courseId)`.
+  - `frontend/src/App.jsx`: emite el evento `userSynced` después de `syncUserToBackend`.
 
-6) Pruebas de validación (sugeridas)
------------------------------------
-- Registrar un estudiante en Clerk y comprobar que `POST /sync-user` crea el usuario en la BD y que `Dashboard` lo refleja (evento `userSynced`).
-- Abrir sesión como otro profesor y verificar que los botones de gestión aparecen y funcionan.
-- Asignar un estudiante a un curso y confirmar que `Enrollment` existe y que el conteo en Dashboard se actualiza.
-- Borrar usuario directamente y comprobar que los endpoints no devuelven datos asociados a ese clerkId.
+### Comportamiento esperado ahora
 
-7) Recomendaciones y próximos pasos
-----------------------------------
-- Agregar constraints/FK con `ON DELETE CASCADE` entre `Users` y `Enrollments`/`QuizResults` si la lógica de negocio lo permite.
-- Implementar SSE o WebSockets para actualizaciones en tiempo real del backend (más robusto que evento global frontend).
-- Añadir pruebas automatizadas (unit/integration) para endpoints y reglas de permisos.
-- (Opcional) añadir endpoint administrativo protegido para limpieza programada de datos huérfanos.
+- Un usuario con rol `teacher` puede gestionar cualquier curso (si tiene credenciales válidas).
+- Cuando un nuevo estudiante se registra y se sincroniza con `POST /sync-user`, el backend crea/actualiza la entrada en `Users` y el frontend recibe el evento `userSynced`, lo que provoca que el `Dashboard` recargue y muestre la información actualizada.
+- Si un usuario es eliminado manualmente (por ejemplo en Clerk o directamente en la BD), las entradas huérfanas en `Enrollments`/`QuizResults` ya no se muestran en la UI gracias al filtrado server-side.
 
-8) Archivos con cambios relevantes
----------------------------------
-- `backend/src/controllers/courseController.js` — múltiples funciones ajustadas; nuevo `getCourseEnrollments`.
-- `backend/src/routes/courses.js` — se registró la nueva ruta de enrollments.
-- `frontend/src/api.js` — `getEnrollments` añadido.
-- `frontend/src/components/Dashboard.jsx` — refactor y escucha `userSynced`.
-- `frontend/src/components/CourseEditor.jsx` y `CourseView.jsx` — UI para teachers.
-- `frontend/src/App.jsx` — emisión de `userSynced` tras `syncUser`.
+### Cómo verificar rápidamente
+
+1. Crear o sincronizar un usuario en Clerk / ejecutar `POST /sync-user`.
+2. Observar en otra sesión de profesor que la tarjeta "Estudiantes Inscritos" se actualiza (evento `userSynced`).
+3. Asignar un estudiante a un curso y comprobar que `GET /courses/:id/enrollments` devuelve la inscripción.
+4. Borrar un usuario y confirmar que `GET /courses/:id/enrollments` y `GET /courses/:id/quiz/results` ya no incluyen datos para ese `clerkId`.
+
+### Decisiones técnicas relevantes
+
+- Autorización por rol en backend para simplificar la administración de cursos en entornos educativos donde varios profesores gestionan el mismo catálogo.
+- Evitar depender únicamente de `QuizResults` para conteos de inscritos; `Enrollments` y la lista `students` son la fuente verdadera.
+- Filtrado server-side para no mostrar datos de usuarios inexistentes; se sugiere agregar FK con `ON DELETE CASCADE` si la política lo permite.
+
+### Problemas detectados y correcciones aplicadas
+
+- Error inicial: la UI ocultaba botones a profesores que no eran creadores. Se cambió la lógica para que la visibilidad dependa del rol `teacher`.
+- Error de conteo: el Dashboard contaba solo alumnos con `QuizResult`. Se incorporaron `Enrollments` y `students` como fuentes.
+- Datos huérfanos: se añadieron filtros en controladores para excluir registros sin usuario.
+
+### Siguientes pasos recomendados
+
+- Añadir constraints/FK con `ON DELETE CASCADE` entre `Users` y tablas dependientes si procede.
+- Añadir pruebas unitarias e integración para endpoints y permisos.
+- Implementar SSE/WebSockets para notificaciones en tiempo real desde el servidor.
+- Crear un endpoint administrativo para limpieza programada de datos huérfanos.
 
 ---
 
-Documento preparado para lectura técnica; si quieres que lo formatee como `CHANGELOG.md` o lo exporte a PDF, lo genero.
+Si quieres, genero ahora un `DOCUMENTATION_SUMMARY.md` con este contenido, un `CHANGELOG.md` con commits relevantes, o hago los cambios en el README para adaptarlo a la plantilla del proyecto. ¿Qué prefieres que haga a continuación?
+
 
