@@ -16,56 +16,50 @@ export default function Dashboard() {
   const role = user?.publicMetadata?.role || "student";
 
   const loadDashboardData = useCallback(async () => {
-    if (!clerkId || role !== "teacher") return;
+    if (!clerkId) return;
     try {
       setLoading(true);
-
-      // Obtener mis cursos
-      const coursesData = await getMyCourses(clerkId);
+      // Obtener mis cursos (si no es docente, aún puede devolver cursos creados)
+      const coursesData = await getMyCourses(clerkId).catch(() => []);
       setCourses(coursesData || []);
 
-      // Obtener todos los estudiantes
-      const studentsData = await getStudents(clerkId);
-      setStudents(studentsData || []);
-
-      // Obtener stats de cada curso
       const stats = {};
       const allQuizResults = [];
 
-      for (const course of coursesData || []) {
-        // Contar quizzes en el curso
-        const blocks = await getCourseBlocks(course.id);
-        const quizCount = (blocks.blocks || []).filter((b) => b.type === "quiz").length;
+      // Si el usuario está marcado como docente en Clerk, obtener también estudiantes y stats
+      if (role === 'teacher') {
+        const studentsData = await getStudents(clerkId);
+        setStudents(studentsData || []);
 
-        // Obtener resultados del curso
-        const results = await getQuizResults(course.id);
-        allQuizResults.push(...(results || []));
+        for (const course of coursesData || []) {
+          const blocks = await getCourseBlocks(course.id);
+          const quizCount = (blocks.blocks || []).filter((b) => b.type === "quiz").length;
+          const results = await getQuizResults(course.id);
+          allQuizResults.push(...(results || []));
 
-        // Obtener enrollments para contar inscripciones que no tienen quiz asignado aún
-        let enrollments = [];
-        try {
-          enrollments = await getEnrollments(course.id);
-        } catch (e) {
-          // si falla, seguimos con los resultados como fallback
-          console.warn("No se pudo obtener enrollments:", e);
-          enrollments = [];
+          let enrollments = [];
+          try {
+            enrollments = await getEnrollments(course.id);
+          } catch (e) {
+            console.warn("No se pudo obtener enrollments:", e);
+            enrollments = [];
+          }
+
+          const enrolledIds = new Set([
+            ...(results || []).map((r) => r.clerkId),
+            ...(enrollments || []).map((e) => e.clerkId),
+          ]);
+
+          stats[course.id] = {
+            quizCount,
+            enrolledStudents: enrolledIds.size,
+            completedQuizzes: (results || []).filter((r) => r.completedAt).length,
+          };
         }
 
-        // combinar clerkIds de results y enrollments para obtener inscritos únicos
-        const enrolledIds = new Set([
-          ...(results || []).map((r) => r.clerkId),
-          ...(enrollments || []).map((e) => e.clerkId),
-        ]);
-
-        stats[course.id] = {
-          quizCount,
-          enrolledStudents: enrolledIds.size,
-          completedQuizzes: (results || []).filter((r) => r.completedAt).length,
-        };
+        setCourseStats(stats);
+        setAllResults(allQuizResults);
       }
-
-      setCourseStats(stats);
-      setAllResults(allQuizResults);
     } catch (e) {
       console.error("❌ Error cargando dashboard:", e);
     } finally {
