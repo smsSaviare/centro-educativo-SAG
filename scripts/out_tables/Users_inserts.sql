@@ -1,0 +1,4 @@
+-- Users_inserts.sql — 3 inserts
+INSERT OR IGNORE INTO "Users" ("id", "clerkId", "email", "firstName", "lastName", "role", "createdAt", "updatedAt") VALUES (1, 'admin_default', 'admin@saviare.com', 'Administrador', 'Sistema', 'admin', '2025-10-31 00:52:21.567+00', '2025-10-31 00:52:21.567+00');
+INSERT OR IGNORE INTO "Users" ("id", "clerkId", "email", "firstName", "lastName", "role", "createdAt", "updatedAt") VALUES (2, 'user_34TWX7M13fgqVw9cYoYgcfotRNP', 'jctibqduiza@gmail.com', 'Juan Camilo', 'Tibaduiza', 'teacher', '2025-10-31 01:44:10.486+00', '2025-10-31 01:44:10.486+00');
+INSERT OR IGNORE INTO "Users" ("id", "clerkId", "email", "firstName", "lastName", "role", "createdAt", "updatedAt") VALUES (13, 'user_35ezQuuguqBsea8SOW9XuBPQNAZ', 'librosayc@gmail.com', 'Libros', 'A&C', 'student', '2025-11-18 17:01:56.248+00', '2025-11-18 17:01:56.248+00');

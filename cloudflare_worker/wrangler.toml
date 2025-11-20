@@ -1,0 +1,13 @@
+# Worker configuration
+name = "sag-worker"
+
+account_id = "e6794c160572ca25cb665c0d47ab37df"
+compatibility_date = "2025-11-20"
+main = "src/index.js"
+
+[env.production]
+zone_id = ""
+
+d1_databases = [
+  { binding = "SAG_DB", database_name = "sag_db" }
+]

@@ -3,6 +3,7 @@ const { Course, CourseBlock } = require("../models/CourseModel");
 const Enrollment = require("../models/EnrollmentModel");
 const User = require("../models/UserModel");
 const QuizResult = require("../models/QuizResultModel");
+const workerClient = require("../utils/workerClient");
 
 /**
  * 🆕 Crear curso
@@ -37,23 +38,21 @@ exports.getMyCourses = async (req, res) => {
   try {
     const clerkId = req.headers["x-clerk-id"];
     if (!clerkId) return res.status(400).json({ error: "Falta clerkId" });
-
-    const user = await User.findOne({ where: { clerkId } });
+    // Obtener usuario desde Worker (D1)
+    const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
+    const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
     let courses = [];
-
     if (user.role === "teacher") {
-      // Los profesores ven TODOS los cursos
-      courses = (await Course.findAll()).map((c) => c.toJSON());
+      // Obtener todos los cursos desde Worker
+      courses = await workerClient.get('/courses');
     } else {
-      const enrollments = await Enrollment.findAll({ where: { clerkId } });
-      const courseIds = enrollments.map((e) => e.courseId);
-      if (courseIds.length > 0) {
-        courses = (
-          await Course.findAll({ where: { id: courseIds } })
-        ).map((c) => c.toJSON());
-      }
+      // Estudiante: obtener enrollments y luego filtrar cursos
+      const enrolls = await workerClient.get(`/enrollments?clerkId=${encodeURIComponent(clerkId)}`);
+      const courseIds = enrolls.map((e) => e.courseId);
+      const allCourses = await workerClient.get('/courses');
+      courses = allCourses.filter((c) => courseIds.includes(c.id));
     }
 
     res.json(courses);
@@ -68,10 +67,8 @@ exports.getMyCourses = async (req, res) => {
  */
 exports.getStudents = async (req, res) => {
   try {
-    const students = await User.findAll({
-      where: { role: "student" },
-      attributes: ["clerkId", "email", "firstName", "lastName"],
-    });
+    const users = await workerClient.get('/users');
+    const students = users.filter((u) => u.role === 'student').map(u => ({ clerkId: u.clerkId, email: u.email, firstName: u.firstName, lastName: u.lastName }));
     res.json(students);
   } catch (error) {
     console.error("❌ Error obteniendo estudiantes:", error);
@@ -92,18 +89,22 @@ exports.assignStudent = async (req, res) => {
       return res.status(400).json({ error: "Faltan datos" });
 
     // Verificar que el usuario sea profesor
-    const user = await User.findOne({ where: { clerkId } });
+    // Verificar rol del usuario a través de Worker
+    const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
+    const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
     if (!user || user.role !== "teacher")
       return res.status(403).json({ error: "No autorizado" });
 
     if (!Array.isArray(studentClerkId)) studentClerkId = [studentClerkId];
 
     const enrollments = [];
-    for (const clerkId of studentClerkId) {
-      const existing = await Enrollment.findOne({ where: { courseId, clerkId } });
-      if (!existing) {
-        const enrollment = await Enrollment.create({ courseId, clerkId });
-        enrollments.push(enrollment);
+    for (const sid of studentClerkId) {
+      try {
+        // Pedir al Worker que cree la enrollment en D1
+        const resp = await workerClient.post('/enrollments', { courseId: parseInt(courseId), clerkId: sid });
+        enrollments.push(resp || { courseId: parseInt(courseId), clerkId: sid });
+      } catch (err) {
+        console.warn('Error creando enrollment en Worker para', sid, err.message);
       }
     }
 
@@ -170,10 +171,7 @@ exports.getCourseBlocks = async (req, res) => {
   try {
     const { courseId } = req.params;
 
-    const blocks = await CourseBlock.findAll({
-      where: { courseId },
-      order: [["position", "ASC"]],
-    });
+    const blocks = await workerClient.get(`/courseblocks?courseId=${encodeURIComponent(courseId)}`);
 
     const formatted = blocks.map((b) => {
       const data = b.content || {};
@@ -213,27 +211,30 @@ exports.saveQuizResult = async (req, res) => {
       return res.status(400).json({ error: "Faltan datos requeridos" });
 
     // Verificar que exista una asignación previa para este estudiante y quiz
-    const existing = await QuizResult.findOne({ where: { clerkId, courseId, quizBlockId } });
-
+    // Usar Worker para recuperar asignaciones del usuario
+    const qrForUser = await workerClient.get(`/quiz-results?clerkId=${encodeURIComponent(clerkId)}`);
+    const existing = qrForUser.find(q => String(q.courseId) === String(courseId) && String(q.quizBlockId) === String(quizBlockId));
     if (!existing) {
       return res.status(403).json({ error: "Quiz no asignado al estudiante" });
     }
+    const attempts = existing.attempts ?? 0;
+    const maxAttempts = existing.maxAttempts ?? 1;
+    if (attempts >= maxAttempts) return res.status(403).json({ error: 'No quedan intentos para este quiz' });
 
-    // Verificar intentos restantes
-    if (existing.attempts >= existing.maxAttempts) {
-      return res.status(403).json({ error: "No quedan intentos para este quiz" });
-    }
-
-    // Incrementar intentos y guardar resultado
-    existing.attempts = (existing.attempts || 0) + 1;
-    existing.score = score;
-    existing.answers = answers || null;
-    if (existing.attempts >= existing.maxAttempts) {
-      existing.completedAt = new Date();
-    }
-    await existing.save();
-
-    return res.json({ success: true, result: existing });
+    // Crear un nuevo registro de resultado vía Worker (append)
+    const payload = {
+      courseId: parseInt(courseId),
+      clerkId,
+      quizBlockId: parseInt(quizBlockId),
+      score: score ?? null,
+      answers: answers ?? null,
+      assignedBy: existing.assignedBy ?? null,
+      completedAt: new Date().toISOString(),
+      attempts: attempts + 1,
+      maxAttempts: maxAttempts,
+    };
+    const created = await workerClient.post('/quiz-results', payload);
+    return res.json({ success: true, result: created });
   } catch (err) {
     console.error("❌ Error guardando resultado del quiz:", err);
     res.status(500).json({ error: "Error guardando resultado del quiz" });
@@ -250,8 +251,9 @@ exports.assignQuiz = async (req, res) => {
     if (!courseId || !quizBlockId || !studentClerkId)
       return res.status(400).json({ error: "Faltan datos requeridos" });
 
-    // Verificar que el usuario sea profesor
-    const user = await User.findOne({ where: { clerkId: assignedBy } });
+    // Verificar que el usuario sea profesor mediante Worker
+    const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(assignedBy)}`);
+    const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
     if (!user || user.role !== "teacher")
       return res.status(403).json({ error: "No autorizado" });
 
@@ -259,24 +261,29 @@ exports.assignQuiz = async (req, res) => {
     const created = [];
 
     for (const clerkId of students) {
-      // 1️⃣ Crear o verificar Enrollment para que el estudiante vea el curso
-      await Enrollment.findOrCreate({
-        where: { courseId: parseInt(courseId), clerkId },
-        defaults: { courseId: parseInt(courseId), clerkId },
-      });
+      // 1️⃣ Crear Enrollment vía Worker
+      try {
+        await workerClient.post('/enrollments', { courseId: parseInt(courseId), clerkId });
+      } catch (err) {
+        console.warn('No se pudo crear enrollment en Worker:', err.message);
+      }
 
-      // 2️⃣ Crear o verificar QuizResult (asignación)
-      const existing = await QuizResult.findOne({ where: { clerkId, courseId, quizBlockId } });
-      if (!existing) {
-        const row = await QuizResult.create({
+      // 2️⃣ Crear QuizResult (asignación) vía Worker
+      try {
+        const cr = await workerClient.post('/quiz-results', {
+          courseId: parseInt(courseId),
           clerkId,
-          courseId,
-          quizBlockId,
+          quizBlockId: parseInt(quizBlockId),
           score: null,
           answers: null,
           assignedBy,
+          completedAt: null,
+          attempts: 0,
+          maxAttempts: 1,
         });
-        created.push(row);
+        created.push(cr);
+      } catch (err) {
+        console.warn('No se pudo crear quizResult en Worker:', err.message);
       }
     }
 
