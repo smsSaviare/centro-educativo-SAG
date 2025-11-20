@@ -39,6 +39,17 @@ exports.createCourse = async (req, res) => {
 };
 
 /**
+ * Helper: unwrap Worker/D1 response shapes that sometimes return { value: [...] } or { results: [...] }
+ */
+function unwrapWorkerResponse(data) {
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.value)) return data.value;
+    if (Array.isArray(data.results)) return data.results;
+  }
+  return data;
+}
+
+/**
  * 📋 Obtener cursos del usuario (profesor o estudiante)
  */
 exports.getMyCourses = async (req, res) => {
@@ -50,17 +61,21 @@ exports.getMyCourses = async (req, res) => {
     if (process.env.WORKER_URL) {
       const workerClient = require('../utils/workerClient');
       // Get the user from D1
-      const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
+      let users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
+      users = unwrapWorkerResponse(users);
       const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
       if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
       let courses = [];
       if (user.role === 'teacher') {
-        courses = await workerClient.get('/courses');
+        let c = await workerClient.get('/courses');
+        courses = unwrapWorkerResponse(c) || [];
       } else {
-        const enrolls = await workerClient.get(`/enrollments?clerkId=${encodeURIComponent(clerkId)}`);
+        let enrolls = await workerClient.get(`/enrollments?clerkId=${encodeURIComponent(clerkId)}`);
+        enrolls = unwrapWorkerResponse(enrolls) || [];
         const courseIds = enrolls.map(e => e.courseId);
-        const allCourses = await workerClient.get('/courses');
+        let allCourses = await workerClient.get('/courses');
+        allCourses = unwrapWorkerResponse(allCourses) || [];
         courses = allCourses.filter(c => courseIds.includes(c.id));
       }
 
