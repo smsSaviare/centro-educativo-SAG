@@ -112,6 +112,13 @@ app.get("/", (req, res) => {
   res.json({ mensaje: "🚀 API Saviare funcionando correctamente con Clerk" });
 });
 
+// Error handler - devuelve JSON en errores no capturados y loguea el stack
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: err && err.message ? err.message : 'Internal Server Error' });
+});
+
 // 🔹 Sincronizar DB y crear administrador por defecto
 async function startServer() {
   try {
