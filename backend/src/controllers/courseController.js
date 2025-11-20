@@ -79,6 +79,8 @@ exports.getMyCourses = async (req, res) => {
         courses = allCourses.filter(c => courseIds.includes(c.id));
       }
 
+      // Ensure we always return a plain array (some responses may still be wrapped)
+      courses = unwrapWorkerResponse(courses) || courses || [];
       return res.json(courses);
     }
 
