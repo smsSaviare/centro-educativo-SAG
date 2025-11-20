@@ -147,17 +147,29 @@ exports.deleteCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
     const clerkId = req.headers["x-clerk-id"];
+    // If running in worker mode, delegate deletion to the Worker (D1)
+    if (process.env.WORKER_URL) {
+      // Verify teacher role via Worker
+      const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
+      const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
+      if (!user || user.role !== 'teacher') return res.status(403).json({ error: 'No autorizado' });
 
+      // Call Worker to delete course and its related data
+      await workerClient.delete(`/courses/${encodeURIComponent(courseId)}`);
+      return res.json({ success: true, message: 'Curso eliminado' });
+    }
+
+    // Fallback: local DB mode
     const course = await Course.findByPk(courseId);
-    if (!course) return res.status(404).json({ error: "Curso no encontrado" });
-    
+    if (!course) return res.status(404).json({ error: 'Curso no encontrado' });
+
     // Verificar que el usuario sea profesor
     const user = await User.findOne({ where: { clerkId } });
-    if (!user || user.role !== "teacher")
-      return res.status(403).json({ error: "No autorizado" });
+    if (!user || user.role !== 'teacher')
+      return res.status(403).json({ error: 'No autorizado' });
 
     await course.destroy();
-    res.json({ success: true, message: "Curso eliminado" });
+    res.json({ success: true, message: 'Curso eliminado' });
   } catch (error) {
     console.error("❌ Error borrando curso:", error);
     res.status(500).json({ error: "Error borrando curso" });

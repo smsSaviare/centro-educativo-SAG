@@ -14,8 +14,14 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url)
     const path = url.pathname.replace(/\/+$/, '')
-    const secret = env.WORKER_SECRET || ''
+    // Normalize secret: strip possible UTF-8 BOM that can be introduced by some
+    // Windows/Powershell piping flows when uploading secrets.
+    const rawSecret = env.WORKER_SECRET || ''
+    const secret = rawSecret.replace(/^\uFEFF/, '')
     const incomingSecret = request.headers.get('x-internal-secret') || ''
+
+    // Note: removed debug logging and debug_probe endpoint for production.
+    // We keep BOM normalization above to avoid secret mismatches on Windows.
 
     if (!secret || incomingSecret !== secret) {
       return unauthorized()
@@ -32,6 +38,17 @@ export default {
         const id = parseInt(path.split('/')[2], 10)
         const res = await env.SAG_DB.prepare('SELECT * FROM Courses WHERE id = ?').bind(id).all()
         return jsonResponse(res.results[0] || null)
+      }
+
+      // DELETE course and related records (CourseBlocks, Enrollments, QuizResults)
+      if (request.method === 'DELETE' && path.startsWith('/courses/')) {
+        const id = parseInt(path.split('/')[2], 10)
+        // Delete dependent rows first to satisfy FK constraints
+        await env.SAG_DB.prepare('DELETE FROM CourseBlocks WHERE courseId = ?').bind(id).run()
+        await env.SAG_DB.prepare('DELETE FROM Enrollments WHERE courseId = ?').bind(id).run()
+        await env.SAG_DB.prepare('DELETE FROM QuizResults WHERE courseId = ?').bind(id).run()
+        const res = await env.SAG_DB.prepare('DELETE FROM Courses WHERE id = ?').bind(id).run()
+        return jsonResponse({ success: true, deleted: res.changes || res.rowsAffected || 0 })
       }
 
       if (request.method === 'GET' && path === '/courseblocks') {

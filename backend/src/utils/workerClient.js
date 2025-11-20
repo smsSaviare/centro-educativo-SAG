@@ -22,4 +22,6 @@ async function callWorker(path, method = 'GET', body = null) {
 module.exports = {
   get: async (path) => callWorker(path, 'GET'),
   post: async (path, body) => callWorker(path, 'POST', body),
+  put: async (path, body) => callWorker(path, 'PUT', body),
+  delete: async (path) => callWorker(path, 'DELETE'),
 };
