@@ -116,19 +116,23 @@ async function startServer() {
     }
 
     const adminEmail = "admin@saviare.com";
-    const [admin, created] = await User.findOrCreate({
-      where: { email: adminEmail },
-      defaults: {
-        clerkId: "admin_default",
-        email: adminEmail,
-        firstName: "Administrador",
-        lastName: "Sistema",
-        role: "teacher",
-      },
-    });
+    if (process.env.WORKER_URL) {
+      console.log('ℹ️ WORKER_URL activo — omitiendo creación/chequeo de usuario administrador local');
+    } else {
+      const [admin, created] = await User.findOrCreate({
+        where: { email: adminEmail },
+        defaults: {
+          clerkId: "admin_default",
+          email: adminEmail,
+          firstName: "Administrador",
+          lastName: "Sistema",
+          role: "teacher",
+        },
+      });
 
-    if (created) console.log("✅ Usuario administrador creado");
-    else console.log("ℹ️ Usuario administrador ya existía");
+      if (created) console.log("✅ Usuario administrador creado");
+      else console.log("ℹ️ Usuario administrador ya existía");
+    }
 
     const PORT = process.env.PORT || 4000;
     app.listen(PORT, () => console.log(`🚀 Servidor en línea en puerto ${PORT}`));
