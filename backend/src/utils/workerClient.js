@@ -16,7 +16,14 @@ async function callWorker(path, method = 'GET', body = null) {
     const txt = await res.text();
     throw new Error(`Worker error ${res.status}: ${txt}`);
   }
-  return res.json();
+  const data = await res.json();
+  // Normalizar distintos shapes que pueden devolver las llamadas a D1/Worker
+  // Algunos despliegues/SDKs devuelven { value: [...] , Count: n } u otros { results: [...] }
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data.value)) return data.value;
+    if (Array.isArray(data.results)) return data.results;
+  }
+  return data;
 }
 
 module.exports = {
