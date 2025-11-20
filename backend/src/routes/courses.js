@@ -29,7 +29,20 @@ router.get("/students", getStudents);
 
 // Obtener un curso por ID
 router.get("/:courseId", async (req, res) => {
-  const course = await Course.findByPk(req.params.courseId);
+  const { courseId } = req.params;
+  if (process.env.WORKER_URL) {
+    try {
+      const workerClient = require('../utils/workerClient');
+      const c = await workerClient.get(`/courses/${encodeURIComponent(courseId)}`);
+      if (!c) return res.status(404).json({ error: 'Curso no encontrado' });
+      return res.json(c);
+    } catch (err) {
+      console.error('❌ Error obteniendo curso via Worker:', err.message || err);
+      return res.status(500).json({ error: 'Error obteniendo curso' });
+    }
+  }
+
+  const course = await Course.findByPk(courseId);
   if (!course) return res.status(404).json({ error: "Curso no encontrado" });
   res.json(course);
 });

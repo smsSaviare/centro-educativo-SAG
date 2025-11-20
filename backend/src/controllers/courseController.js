@@ -38,28 +38,34 @@ exports.getMyCourses = async (req, res) => {
   try {
     const clerkId = req.headers["x-clerk-id"];
     if (!clerkId) return res.status(400).json({ error: "Falta clerkId" });
-    // Obtener usuario desde Worker (D1)
-    const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
-    const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
-    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
-
-    let courses = [];
-    if (user.role === "teacher") {
-      // Obtener todos los cursos desde Worker
-      courses = await workerClient.get('/courses');
-    } else {
-      // Estudiante: obtener enrollments y luego filtrar cursos
-      const enrolls = await workerClient.get(`/enrollments?clerkId=${encodeURIComponent(clerkId)}`);
-      const courseIds = enrolls.map((e) => e.courseId);
-      const allCourses = await workerClient.get('/courses');
-      courses = allCourses.filter((c) => courseIds.includes(c.id));
+    if (process.env.WORKER_URL) {
+      const workerClient = require('../utils/workerClient');
+      const enrolls = await workerClient.get(`/enrollments?courseId=${encodeURIComponent(courseId)}`);
+      const enriched = [];
+      for (const e of enrolls) {
+        const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(e.clerkId)}`);
+        const u = Array.isArray(users) && users.length > 0 ? users[0] : null;
+        if (!u) continue;
+        enriched.push(Object.assign({}, e, { student: { firstName: u.firstName, lastName: u.lastName, email: u.email } }));
+      }
+      return res.json(enriched);
     }
 
-    res.json(courses);
-  } catch (error) {
-    console.error("❌ Error obteniendo cursos:", error);
-    res.status(500).json({ error: "Error obteniendo cursos" });
-  }
+    // traer inscripciones
+    const enrolls = await Enrollment.findAll({ where: { courseId } });
+
+    // obtener datos de usuario para los clerkIds encontrados
+    const clerkIds = Array.from(new Set(enrolls.map((e) => e.clerkId)));
+    const users = clerkIds.length > 0 ? await User.findAll({ where: { clerkId: clerkIds } }) : [];
+    const userMap = {};
+    users.forEach((u) => {
+      userMap[u.clerkId] = { firstName: u.firstName, lastName: u.lastName, email: u.email };
+    });
+
+    // enriquecer y filtrar enrollments para excluir usuarios eliminados
+    const enriched = enrolls
+      .map((e) => {
+        const row = e.toJSON();
 };
 
 /**
@@ -311,6 +317,24 @@ exports.getQuizResults = async (req, res) => {
   try {
     const { courseId } = req.params;
     const { clerkId } = req.query;
+    if (process.env.WORKER_URL) {
+      // Fetch quiz results from Worker
+      const workerClient = require('./../utils/workerClient');
+      const query = clerkId ? `?clerkId=${encodeURIComponent(clerkId)}&courseId=${encodeURIComponent(courseId)}` : `?courseId=${encodeURIComponent(courseId)}`;
+      const results = await workerClient.get(`/quiz-results${query}`);
+
+      // Enrich results with user info via Worker
+      const enriched = [];
+      for (const r of results) {
+        const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(r.clerkId)}`);
+        const u = Array.isArray(users) && users.length > 0 ? users[0] : null;
+        if (!u) continue; // skip results for deleted users
+        const row = Object.assign({}, r, { student: { firstName: u.firstName, lastName: u.lastName, email: u.email } });
+        enriched.push(row);
+      }
+
+      return res.json(enriched.sort((a,b) => (a.quizBlockId||0) - (b.quizBlockId||0)));
+    }
 
     const where = { courseId };
     if (clerkId) where.clerkId = clerkId; // si es estudiante

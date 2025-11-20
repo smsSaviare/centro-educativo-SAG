@@ -81,6 +81,13 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
     const email = user.emailAddresses?.[0]?.emailAddress || "sin_email@correo.com";
     const firstName = user.firstName || "";
     const lastName = user.lastName || "";
+    // If worker mode is active, delegate user upsert to Worker (D1)
+    if (process.env.WORKER_URL) {
+      const workerClient = require('./utils/workerClient');
+      const payload = { clerkId: userId, email, firstName, lastName, role: 'student' };
+      const created = await workerClient.post('/users', payload);
+      return res.json({ success: true, message: 'Usuario sincronizado en D1', user: created });
+    }
 
     const [dbUser, created] = await User.findOrCreate({
       where: { clerkId: userId },

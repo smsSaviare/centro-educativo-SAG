@@ -124,6 +124,26 @@ export default {
         return jsonResponse(res.results)
       }
 
+      // Create or update user (upsert) — used by backend /sync-user when in WORKER mode
+      if (request.method === 'POST' && path === '/users') {
+        const b = await request.json();
+        const { clerkId, email, firstName, lastName, role } = b;
+        if (!clerkId) return jsonResponse({ error: 'missing clerkId' }, 400);
+
+        // Check if user exists
+        const exists = await env.SAG_DB.prepare('SELECT id FROM Users WHERE clerkId = ?').bind(clerkId).all();
+        if (Array.isArray(exists.results) && exists.results.length > 0) {
+          await env.SAG_DB.prepare('UPDATE Users SET email = ?, firstName = ?, lastName = ?, role = ? WHERE clerkId = ?')
+            .bind(email || '', firstName || '', lastName || '', role || 'student', clerkId).run();
+        } else {
+          await env.SAG_DB.prepare('INSERT INTO Users (clerkId, email, firstName, lastName, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .bind(clerkId, email || '', firstName || '', lastName || '', role || 'student', new Date().toISOString(), new Date().toISOString()).run();
+        }
+
+        const res = await env.SAG_DB.prepare('SELECT * FROM Users WHERE clerkId = ?').bind(clerkId).all();
+        return jsonResponse(res.results[0] || null);
+      }
+
       return jsonResponse({ error: 'not_found' }, 404)
     } catch (err) {
       return jsonResponse({ error: err.message }, 500)
