@@ -79,6 +79,7 @@ exports.getMyCourses = async (req, res) => {
     console.error("❌ Error obteniendo cursos:", error);
     res.status(500).json({ error: "Error obteniendo cursos" });
   }
+  };
 
 /**
  * 👨‍🏫 Obtener todos los estudiantes
