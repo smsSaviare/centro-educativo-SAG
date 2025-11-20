@@ -108,8 +108,12 @@ app.get("/", (req, res) => {
 // 🔹 Sincronizar DB y crear administrador por defecto
 async function startServer() {
   try {
-    await sequelize.sync({ alter: true });
-    console.log("✅ Base de datos sincronizada");
+    if (process.env.WORKER_URL) {
+      console.log('ℹ️ WORKER_URL detected — usando Cloudflare D1 vía Worker. Omitiendo sequelize.sync().')
+    } else {
+      await sequelize.sync({ alter: true });
+      console.log("✅ Base de datos sincronizada");
+    }
 
     const adminEmail = "admin@saviare.com";
     const [admin, created] = await User.findOrCreate({
