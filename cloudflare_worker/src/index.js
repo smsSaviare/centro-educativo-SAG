@@ -147,6 +147,11 @@ export default {
       // Create a new course
       if (request.method === 'POST' && path === '/courses') {
         const b = await request.json();
+        // Basic validation
+        if (!b || !b.title || !b.creatorClerkId) {
+          return jsonResponse({ error: 'missing title or creatorClerkId' }, 400);
+        }
+
         const now = new Date().toISOString();
         const stmt = await env.SAG_DB.prepare(
           'INSERT INTO Courses (title, description, image, resources, creatorClerkId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -154,20 +159,29 @@ export default {
           b.title || '',
           b.description || '',
           b.image || null,
-          JSON.stringify(b.resources || null),
+          JSON.stringify(b.resources ?? []),
           b.creatorClerkId || null,
           now,
           now
         );
         const r = await stmt.run();
-        const id = r.lastRowId;
+        // D1 driver may return different keys for last inserted id
+        const id = r && (r.lastRowId || r.lastInsertRowid || r.insertId || r.id);
+        if (!id) {
+          // fallback: try to find by unique fields (createdAt + title + creator)
+          const fetchedFallback = await env.SAG_DB.prepare('SELECT * FROM Courses WHERE title = ? AND creatorClerkId = ? ORDER BY createdAt DESC LIMIT 1')
+            .bind(b.title, b.creatorClerkId).all();
+          return jsonResponse(fetchedFallback.results[0] || null, 201);
+        }
         const fetched = await env.SAG_DB.prepare('SELECT * FROM Courses WHERE id = ?').bind(id).all();
         return jsonResponse(fetched.results[0] || null, 201);
       }
 
       return jsonResponse({ error: 'not_found' }, 404)
     } catch (err) {
-      return jsonResponse({ error: err.message }, 500)
+      // Log full error to worker logs and return stack for debugging
+      try { console.error('Worker error', err); } catch (e) {}
+      return jsonResponse({ error: err && err.message ? err.message : String(err), stack: err && err.stack ? err.stack : null }, 500)
     }
   }
 }
