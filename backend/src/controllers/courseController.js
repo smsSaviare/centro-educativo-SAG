@@ -38,35 +38,47 @@ exports.getMyCourses = async (req, res) => {
   try {
     const clerkId = req.headers["x-clerk-id"];
     if (!clerkId) return res.status(400).json({ error: "Falta clerkId" });
+
+    // Worker mode: fetch data from Cloudflare Worker (D1)
     if (process.env.WORKER_URL) {
       const workerClient = require('../utils/workerClient');
-      const enrolls = await workerClient.get(`/enrollments?courseId=${encodeURIComponent(courseId)}`);
-      const enriched = [];
-      for (const e of enrolls) {
-        const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(e.clerkId)}`);
-        const u = Array.isArray(users) && users.length > 0 ? users[0] : null;
-        if (!u) continue;
-        enriched.push(Object.assign({}, e, { student: { firstName: u.firstName, lastName: u.lastName, email: u.email } }));
+      // Get the user from D1
+      const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
+      const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
+      if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+      let courses = [];
+      if (user.role === 'teacher') {
+        courses = await workerClient.get('/courses');
+      } else {
+        const enrolls = await workerClient.get(`/enrollments?clerkId=${encodeURIComponent(clerkId)}`);
+        const courseIds = enrolls.map(e => e.courseId);
+        const allCourses = await workerClient.get('/courses');
+        courses = allCourses.filter(c => courseIds.includes(c.id));
       }
-      return res.json(enriched);
+
+      return res.json(courses);
     }
 
-    // traer inscripciones
-    const enrolls = await Enrollment.findAll({ where: { courseId } });
+    // Local DB mode: use Sequelize models
+    const dbUser = await User.findOne({ where: { clerkId } });
+    if (!dbUser) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-    // obtener datos de usuario para los clerkIds encontrados
-    const clerkIds = Array.from(new Set(enrolls.map((e) => e.clerkId)));
-    const users = clerkIds.length > 0 ? await User.findAll({ where: { clerkId: clerkIds } }) : [];
-    const userMap = {};
-    users.forEach((u) => {
-      userMap[u.clerkId] = { firstName: u.firstName, lastName: u.lastName, email: u.email };
-    });
+    let courses = [];
+    if (dbUser.role === 'teacher') {
+      courses = await Course.findAll();
+    } else {
+      const enrolls = await Enrollment.findAll({ where: { clerkId } });
+      const courseIds = enrolls.map(e => e.courseId);
+      const allCourses = await Course.findAll();
+      courses = allCourses.filter(c => courseIds.includes(c.id));
+    }
 
-    // enriquecer y filtrar enrollments para excluir usuarios eliminados
-    const enriched = enrolls
-      .map((e) => {
-        const row = e.toJSON();
-};
+    res.json(courses);
+  } catch (error) {
+    console.error("❌ Error obteniendo cursos:", error);
+    res.status(500).json({ error: "Error obteniendo cursos" });
+  }
 
 /**
  * 👨‍🏫 Obtener todos los estudiantes
