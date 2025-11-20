@@ -16,6 +16,13 @@ exports.createCourse = async (req, res) => {
     if (!title || !creatorClerkId)
       return res.status(400).json({ error: "Faltan datos requeridos" });
 
+    // If WORKER_URL is set, delegate creation to the Worker (Cloudflare D1)
+    if (process.env.WORKER_URL) {
+      const payload = { title, description, image: image || null, resources: resources || null, creatorClerkId };
+      const created = await workerClient.post('/courses', payload);
+      return res.status(201).json(created);
+    }
+
     const course = await Course.create({
       title,
       description,

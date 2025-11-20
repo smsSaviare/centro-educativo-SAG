@@ -144,6 +144,27 @@ export default {
         return jsonResponse(res.results[0] || null);
       }
 
+      // Create a new course
+      if (request.method === 'POST' && path === '/courses') {
+        const b = await request.json();
+        const now = new Date().toISOString();
+        const stmt = await env.SAG_DB.prepare(
+          'INSERT INTO Courses (title, description, image, resources, creatorClerkId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
+        ).bind(
+          b.title || '',
+          b.description || '',
+          b.image || null,
+          JSON.stringify(b.resources || null),
+          b.creatorClerkId || null,
+          now,
+          now
+        );
+        const r = await stmt.run();
+        const id = r.lastRowId;
+        const fetched = await env.SAG_DB.prepare('SELECT * FROM Courses WHERE id = ?').bind(id).all();
+        return jsonResponse(fetched.results[0] || null, 201);
+      }
+
       return jsonResponse({ error: 'not_found' }, 404)
     } catch (err) {
       return jsonResponse({ error: err.message }, 500)
