@@ -47,7 +47,14 @@ app.use(
 // Respaldo: añadir cabeceras CORS y responder OPTIONS tempranamente
 app.use((req, res, next) => {
   // Asegura que las respuestas de error también incluyan cabeceras CORS
-  res.header("Access-Control-Allow-Origin", "https://smssaviare.github.io");
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  } else {
+    // Si el origin no está en la lista, no exponemos el origin dinámicamente;
+    // como fallback usamos el primer origin permitido (útil para logs/debug).
+    res.header("Access-Control-Allow-Origin", allowedOrigins[0]);
+  }
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.header(
     "Access-Control-Allow-Headers",
