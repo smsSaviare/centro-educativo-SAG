@@ -91,7 +91,19 @@ app.post("/sync-user", ClerkExpressRequireAuth(), async (req, res) => {
     // If worker mode is active, delegate user upsert to Worker (D1)
     if (process.env.WORKER_URL) {
       const workerClient = require('./utils/workerClient');
-      const payload = { clerkId: userId, email, firstName, lastName, role: 'student' };
+
+      // Prefer role declared in Clerk public metadata (if present).
+      // Clerk SDK may expose public metadata under `publicMetadata` or `public_metadata`.
+      const roleFromClerk = user.publicMetadata?.role || user.public_metadata?.role || null;
+
+      // Check D1 existing user so we don't accidentally downgrade an existing teacher
+      const existing = await workerClient.get(`/users?clerkId=${encodeURIComponent(userId)}`);
+      const existingUser = Array.isArray(existing) && existing.length > 0 ? existing[0] : null;
+
+      // Determine final role: Clerk's role if provided, otherwise preserve existing role, otherwise default to 'student'
+      const finalRole = roleFromClerk || (existingUser && existingUser.role) || 'student';
+
+      const payload = { clerkId: userId, email, firstName, lastName, role: finalRole };
       const created = await workerClient.post('/users', payload);
       return res.json({ success: true, message: 'Usuario sincronizado en D1', user: created });
     }
