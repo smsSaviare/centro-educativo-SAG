@@ -58,6 +58,46 @@ export default {
         return jsonResponse(res.results)
       }
 
+      // Replace course blocks for a course (delete existing + insert new)
+      if (request.method === 'POST' && path === '/courseblocks') {
+        const b = await request.json();
+        const courseId = b.courseId;
+        const blocks = Array.isArray(b.blocks) ? b.blocks : [];
+        if (!courseId) return jsonResponse({ error: 'missing courseId' }, 400);
+
+        // Delete existing blocks for course
+        await env.SAG_DB.prepare('DELETE FROM CourseBlocks WHERE courseId = ?').bind(courseId).run();
+
+        const inserted = [];
+        const now = new Date().toISOString();
+        for (let i = 0; i < blocks.length; i++) {
+          const block = blocks[i] || {};
+          const type = block.type || 'text';
+          let contentObj = {};
+          if (type === 'quiz') {
+            contentObj = {
+              question: block.question || '',
+              options: Array.isArray(block.options) ? block.options : [],
+              correct: block.correct ?? 0,
+            };
+          } else {
+            contentObj = {
+              text: block.content || '',
+              url: block.url || '',
+            };
+          }
+
+          const stmt = await env.SAG_DB.prepare('INSERT INTO CourseBlocks (courseId, type, content, position, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)')
+            .bind(courseId, type, JSON.stringify(contentObj), block.position ?? i, now, now);
+          const r = await stmt.run();
+          const id = r && (r.lastRowId || r.lastInsertRowid || r.insertId || r.id);
+          const fetched = id ? await env.SAG_DB.prepare('SELECT * FROM CourseBlocks WHERE id = ?').bind(id).all() : null;
+          inserted.push(fetched ? (fetched.results[0] || null) : null);
+        }
+
+        return jsonResponse(inserted);
+      }
+
       if (request.method === 'GET' && path === '/enrollments') {
         const clerkId = url.searchParams.get('clerkId')
         const courseId = url.searchParams.get('courseId')

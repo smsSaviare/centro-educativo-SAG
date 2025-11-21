@@ -493,6 +493,19 @@ exports.saveCourseBlocks = async (req, res) => {
     if (!Array.isArray(blocks))
       return res.status(400).json({ error: "Blocks debe ser un array" });
 
+    // Si estamos en modo Worker, delegar al Worker (D1)
+    if (process.env.WORKER_URL) {
+      // Verificar que el usuario sea profesor mediante Worker
+      const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
+      const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
+      if (!user || user.role !== 'teacher') return res.status(403).json({ error: 'No autorizado' });
+
+      // Enviar todos los bloques al Worker para reemplazar los existentes
+      const payload = { courseId: parseInt(courseId), blocks };
+      const resp = await workerClient.post('/courseblocks', payload);
+      return res.json({ success: true, message: 'Bloques guardados correctamente', blocks: resp });
+    }
+
     // Verificar que el curso exista
     const course = await Course.findByPk(courseId);
     if (!course)
