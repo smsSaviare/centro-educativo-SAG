@@ -410,7 +410,33 @@ exports.getCourseEnrollments = async (req, res) => {
     const { courseId } = req.params;
     if (!courseId) return res.status(400).json({ error: "Falta courseId" });
 
-    // traer inscripciones
+    // Si estamos en modo Worker/D1 delegamos al Worker
+    if (process.env.WORKER_URL) {
+      // Obtener enrollments desde el Worker
+      const raw = await workerClient.get(`/enrollments?courseId=${encodeURIComponent(courseId)}`);
+      const enrolls = unwrapWorkerResponse(raw) || [];
+
+      // Obtener lista de usuarios desde Worker y mapear por clerkId
+      const allUsersRaw = await workerClient.get('/users');
+      const allUsers = unwrapWorkerResponse(allUsersRaw) || [];
+      const userMap = {};
+      allUsers.forEach((u) => {
+        userMap[u.clerkId] = { firstName: u.firstName, lastName: u.lastName, email: u.email };
+      });
+
+      // Enriquecer enrollments con datos de usuario y filtrar usuarios eliminados
+      const enriched = enrolls
+        .map((e) => {
+          const row = Object.assign({}, e);
+          row.student = userMap[row.clerkId] || null;
+          return row;
+        })
+        .filter((r) => r.student !== null);
+
+      return res.json(enriched);
+    }
+
+    // traer inscripciones desde DB local (fallback)
     const enrolls = await Enrollment.findAll({ where: { courseId } });
 
     // obtener datos de usuario para los clerkIds encontrados
