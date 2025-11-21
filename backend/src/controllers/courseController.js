@@ -229,14 +229,29 @@ exports.getCourseBlocks = async (req, res) => {
     const blocks = await workerClient.get(`/courseblocks?courseId=${encodeURIComponent(courseId)}`);
 
     const formatted = blocks.map((b) => {
-      const data = b.content || {};
+      // `b.content` may be stored as an object or as a JSON string depending on
+      // whether it was inserted via Sequelize (object) or via raw D1 inserts (string).
+      let contentRaw = b.content;
+      let data = {};
+      if (contentRaw) {
+        if (typeof contentRaw === 'string') {
+          try {
+            data = JSON.parse(contentRaw);
+          } catch (e) {
+            // If parse fails, fall back: for text blocks the raw string may be the text itself
+            data = { text: contentRaw };
+          }
+        } else if (typeof contentRaw === 'object') {
+          data = contentRaw;
+        }
+      }
 
       if (b.type === "quiz") {
         return {
           id: b.id,
           type: "quiz",
-          question: data.question || "",
-          options: data.options || [],
+          question: data.question || '',
+          options: Array.isArray(data.options) ? data.options : [],
           correct: data.correct ?? 0,
         };
       }
@@ -244,8 +259,8 @@ exports.getCourseBlocks = async (req, res) => {
       return {
         id: b.id,
         type: b.type,
-        content: data.text || "",
-        url: data.url || "",
+        content: data.text || '',
+        url: data.url || '',
       };
     });
 
