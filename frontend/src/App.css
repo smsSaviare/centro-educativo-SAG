@@ -1,7 +1,9 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  /* Usar ancho completo para permitir 'full-bleed' en hero y paneles */
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0; /* dejar que las vistas gestionen su propio padding */
   text-align: left;
 }
 
