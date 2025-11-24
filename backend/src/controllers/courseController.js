@@ -228,29 +228,65 @@ exports.getCourseBlocks = async (req, res) => {
 
     const blocks = await workerClient.get(`/courseblocks?courseId=${encodeURIComponent(courseId)}`);
 
-    const formatted = blocks.map((b) => {
-      // `b.content` may be stored as an object or as a JSON string depending on
-      // whether it was inserted via Sequelize (object) or via raw D1 inserts (string).
-      let contentRaw = b.content;
-      let data = {};
-      if (contentRaw) {
-        if (typeof contentRaw === 'string') {
-          try {
-            data = JSON.parse(contentRaw);
-          } catch (e) {
-            // If parse fails, fall back: for text blocks the raw string may be the text itself
-            data = { text: contentRaw };
-          }
-        } else if (typeof contentRaw === 'object') {
-          data = contentRaw;
+    // Sanitize and normalize content values that arrived malformed during migration.
+    function normalizeContent(contentRaw) {
+      if (!contentRaw && contentRaw !== "") return {};
+      // If already an object, return as-is
+      if (typeof contentRaw === "object") return contentRaw;
+
+      // If string, try JSON.parse first
+      if (typeof contentRaw === "string") {
+        // Trim and remove surrounding backticks
+        let s = contentRaw.trim();
+        if (s.startsWith('`') && s.endsWith('`')) s = s.slice(1, -1);
+
+        try {
+          const parsed = JSON.parse(s);
+          if (parsed && typeof parsed === 'object') return parsed;
+        } catch (e) {
+          // continue to heuristics
         }
+
+        // Heuristic: look for a `text` field inside the malformed string
+        // Examples observed: "{'text'":'"Uso de EPPs'"  or similar mixes of quotes
+        const m = s.match(/text\s*['\"]*\s*[:=]\s*['\"`]+([^'"`\n\r]+)/i);
+        if (m && m[1]) {
+          return { text: m[1].trim() };
+        }
+
+        // Another heuristic: find the longest quoted substring (single or double quotes)
+        const quoted = [];
+        const qr = s.match(/['"]([^'"]{3,})['"]/g);
+        if (qr && qr.length > 0) {
+          for (const q of qr) {
+            const inner = q.slice(1, -1).trim();
+            if (inner.length > 2) quoted.push(inner);
+          }
+          if (quoted.length > 0) {
+            // prefer the longest quoted segment
+            quoted.sort((a, b) => b.length - a.length);
+            return { text: quoted[0] };
+          }
+        }
+
+        // Fallback: remove stray braces and quotes and return what's left
+        const cleaned = s.replace(/[{}\[\]`]/g, '').replace(/\s+/g, ' ').replace(/\"/g, '"').trim();
+        return { text: cleaned };
       }
+
+      // default
+      return {};
+    }
+
+    const formatted = (blocks || []).map((b) => {
+      const contentRaw = b.content;
+      const data = normalizeContent(contentRaw) || {};
 
       if (b.type === "quiz") {
         return {
           id: b.id,
           type: "quiz",
-          question: data.question || '',
+          question: data.question || data.text || 'Pregunta sin texto',
           options: Array.isArray(data.options) ? data.options : [],
           correct: data.correct ?? 0,
         };
@@ -502,8 +538,13 @@ exports.saveCourseBlocks = async (req, res) => {
 
       // Enviar todos los bloques al Worker para reemplazar los existentes
       const payload = { courseId: parseInt(courseId), blocks };
-      const resp = await workerClient.post('/courseblocks', payload);
-      return res.json({ success: true, message: 'Bloques guardados correctamente', blocks: resp });
+      try {
+        const resp = await workerClient.post('/courseblocks', payload);
+        return res.json({ success: true, message: 'Bloques guardados correctamente', blocks: resp });
+      } catch (err) {
+        console.error('❌ Error guardando bloques (Worker):', err && err.message ? err.message : err);
+        return res.status(500).json({ error: 'Error guardando contenido del curso', detail: (err && err.message) || String(err) });
+      }
     }
 
     // Verificar que el curso exista
