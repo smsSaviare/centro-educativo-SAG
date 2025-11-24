@@ -298,12 +298,32 @@ exports.getCourseBlocks = async (req, res) => {
       const data = normalizeContent(contentRaw) || {};
 
       if (b.type === "quiz") {
+        // Support both legacy single-question quiz blocks and new multi-question format
+        if (Array.isArray(data.questions)) {
+          return {
+            id: b.id,
+            type: "quiz",
+            questions: data.questions.map((q, qi) => ({
+              id: q.id ?? `${b.id}-${qi}`,
+              question: q.question || q.text || 'Pregunta sin texto',
+              options: Array.isArray(q.options) ? q.options : [],
+              correct: typeof q.correct === 'number' ? q.correct : 0,
+            })),
+          };
+        }
+
+        // legacy single-question
         return {
           id: b.id,
           type: "quiz",
-          question: data.question || data.text || 'Pregunta sin texto',
-          options: Array.isArray(data.options) ? data.options : [],
-          correct: data.correct ?? 0,
+          questions: [
+            {
+              id: `${b.id}-0`,
+              question: data.question || data.text || 'Pregunta sin texto',
+              options: Array.isArray(data.options) ? data.options : [],
+              correct: data.correct ?? 0,
+            },
+          ],
         };
       }
 

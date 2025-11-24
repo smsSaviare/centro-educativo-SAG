@@ -96,16 +96,43 @@ export default function CourseBuilder({ courseId, clerkId }) {
   const addBlock = (type) => {
     const newBlock =
       type === "quiz"
-        ? { id: Date.now().toString(), type: "quiz", question: "", options: ["", ""], correct: 0 }
+        ? {
+            id: Date.now().toString(),
+            type: "quiz",
+            questions: [
+              { id: `${Date.now()}-0`, question: "", options: ["", ""], correct: 0 },
+            ],
+          }
         : { id: Date.now().toString(), type, content: "", url: "" };
     const newBlocks = [...blocks, newBlock];
     setBlocks(newBlocks);
     debouncedPersist(newBlocks);
   };
 
+  const addBlockAt = (idx, type) => {
+    const newBlock =
+      type === "quiz"
+        ? {
+            id: Date.now().toString(),
+            type: "quiz",
+            questions: [
+              { id: `${Date.now()}-0`, question: "", options: ["", ""], correct: 0 },
+            ],
+          }
+        : { id: Date.now().toString(), type, content: "", url: "" };
+    const newBlocks = [...blocks.slice(0, idx), newBlock, ...blocks.slice(idx)];
+    setBlocks(newBlocks);
+    debouncedPersist(newBlocks);
+  };
+
   const updateBlock = (index, field, value) => {
     const newBlocks = [...blocks];
-    newBlocks[index] = { ...newBlocks[index], [field]: value };
+    // Support updating nested quiz questions
+    if (field === "questions") {
+      newBlocks[index] = { ...newBlocks[index], questions: value };
+    } else {
+      newBlocks[index] = { ...newBlocks[index], [field]: value };
+    }
     setBlocks(newBlocks);
     debouncedPersist(newBlocks);
   };
@@ -150,6 +177,13 @@ export default function CourseBuilder({ courseId, clerkId }) {
                       {...provided.dragHandleProps}
                       className="border rounded p-4 relative bg-gray-50 hover:shadow transition"
                     >
+                        {/* Add-toolbar before block: allow inserting blocks at this position */}
+                        <div className="mb-3 flex gap-2">
+                          <button onClick={() => addBlockAt(index, 'text')} className="text-sm bg-green-100 px-2 py-1 rounded">+ Texto</button>
+                          <button onClick={() => addBlockAt(index, 'image')} className="text-sm bg-blue-100 px-2 py-1 rounded">+ Imagen</button>
+                          <button onClick={() => addBlockAt(index, 'video')} className="text-sm bg-red-100 px-2 py-1 rounded">+ Video</button>
+                          <button onClick={() => addBlockAt(index, 'quiz')} className="text-sm bg-purple-100 px-2 py-1 rounded">+ Quiz</button>
+                        </div>
                       <button
                         onClick={() => removeBlock(index)}
                         className="absolute top-2 right-2 text-sm bg-red-500 text-white px-2 rounded hover:bg-red-600"
@@ -207,45 +241,72 @@ export default function CourseBuilder({ courseId, clerkId }) {
 
                       {block.type === "quiz" && (
                         <div>
-                          <input
-                            type="text"
-                            className="w-full border p-2 rounded mb-2"
-                            placeholder="Pregunta del quiz"
-                            value={block.question || ""}
-                            onChange={(e) => updateBlock(index, "question", e.target.value)}
-                          />
-
-                          {(block.options || []).map((opt, i) => (
-                            <div key={i} className="flex items-center gap-2 mb-1">
-                              <input
-                                type="radio"
-                                name={`correct-${block.id}`}
-                                checked={block.correct === i}
-                                onChange={() => updateBlock(index, "correct", i)}
-                              />
+                          {/* Multiple questions within this quiz block */}
+                          {(block.questions || []).map((q, qi) => (
+                            <div key={q.id || qi} className="mb-3 border-b pb-2">
                               <input
                                 type="text"
-                                className="border p-1 rounded flex-1"
-                                placeholder={`Opción ${i + 1}`}
-                                value={opt}
+                                className="w-full border p-2 rounded mb-2"
+                                placeholder={`Pregunta ${qi + 1}`}
+                                value={q.question || ""}
                                 onChange={(e) => {
-                                  const newOpts = [...(block.options || [])];
-                                  newOpts[i] = e.target.value;
-                                  updateBlock(index, "options", newOpts);
+                                  const newQs = [...(block.questions || [])];
+                                  newQs[qi] = { ...newQs[qi], question: e.target.value };
+                                  updateBlock(index, "questions", newQs);
                                 }}
                               />
+
+                              {(q.options || []).map((opt, i) => (
+                                <div key={i} className="flex items-center gap-2 mb-1">
+                                  <input
+                                    type="radio"
+                                    name={`correct-${block.id}-${qi}`}
+                                    checked={q.correct === i}
+                                    onChange={() => {
+                                      const newQs = [...(block.questions || [])];
+                                      newQs[qi] = { ...newQs[qi], correct: i };
+                                      updateBlock(index, "questions", newQs);
+                                    }}
+                                  />
+                                  <input
+                                    type="text"
+                                    className="border p-1 rounded flex-1"
+                                    placeholder={`Opción ${i + 1}`}
+                                    value={opt}
+                                    onChange={(e) => {
+                                      const newQs = [...(block.questions || [])];
+                                      const newOpts = [...(newQs[qi].options || [])];
+                                      newOpts[i] = e.target.value;
+                                      newQs[qi] = { ...newQs[qi], options: newOpts };
+                                      updateBlock(index, "questions", newQs);
+                                    }}
+                                  />
+                                </div>
+                              ))}
+
+                              <div className="flex gap-2 mt-1">
+                                <button
+                                  className="text-sm text-blue-600 underline"
+                                  onClick={() => {
+                                    const newQs = [...(block.questions || []), { id: `${block.id}-${Date.now()}`, question: "", options: ["", ""], correct: 0 }];
+                                    updateBlock(index, "questions", newQs);
+                                  }}
+                                >
+                                  + Añadir otra pregunta al quiz
+                                </button>
+                                <button
+                                  className="text-sm text-red-600 underline"
+                                  onClick={() => {
+                                    const newQs = [...(block.questions || [])];
+                                    newQs.pop();
+                                    updateBlock(index, "questions", newQs);
+                                  }}
+                                >
+                                  - Quitar última pregunta
+                                </button>
+                              </div>
                             </div>
                           ))}
-
-                          <button
-                            className="mt-1 text-sm text-blue-600 underline"
-                            onClick={() => {
-                              const newOpts = [...(block.options || []), ""];
-                              updateBlock(index, "options", newOpts);
-                            }}
-                          >
-                            + Añadir opción
-                          </button>
                         </div>
                       )}
                     </div>

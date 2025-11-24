@@ -41,6 +41,8 @@ export default function CourseView() {
   const { id } = useParams();
   const [course, setCourse] = useState(null);
   const [blocks, setBlocks] = useState([]);
+  const [answersMap, setAnswersMap] = useState({}); // map blockId -> array of selected indices per question
+  const [showMyGrades, setShowMyGrades] = useState(false);
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState({});
   const [assignedMap, setAssignedMap] = useState({});
@@ -58,15 +60,24 @@ export default function CourseView() {
 
       const data = await getCourseBlocks(id);
       console.log("🧩 Datos de bloques recibidos:", data?.blocks);
-      setBlocks(
-        Array.isArray(data?.blocks)
-          ? data.blocks.map((b) => ({
-              ...b,
-              question: b.question || "Pregunta sin texto",
-              options: Array.isArray(b.options) ? b.options : ["Opción 1", "Opción 2"],
-            }))
-          : []
-      );
+      const normalized = (Array.isArray(data?.blocks) ? data.blocks : []).map((b) => {
+        if (b.type === 'quiz') {
+          // normalize questions array
+          const qs = Array.isArray(b.questions)
+            ? b.questions.map((q, qi) => ({
+                id: q.id ?? `${b.id}-${qi}`,
+                question: q.question || q.text || 'Pregunta sin texto',
+                options: Array.isArray(q.options) ? q.options : ['',''],
+                correct: typeof q.correct === 'number' ? q.correct : 0,
+              }))
+            : [ { id: `${b.id}-0`, question: b.question || b.content || 'Pregunta sin texto', options: Array.isArray(b.options) ? b.options : ['',''], correct: b.correct ?? 0 } ];
+          return { ...b, questions: qs };
+        }
+        if (b.type === 'text') return { ...b, content: b.content || '' };
+        if (b.type === 'video' || b.type === 'image') return { ...b, url: b.url || '' };
+        return b;
+      });
+      setBlocks(normalized);
 
       // Cargar resultados/assignaciones si el usuario está logueado
       if (isSignedIn && user) {
@@ -231,46 +242,84 @@ export default function CourseView() {
                 />
               )}
 
-              {/* Quiz */}
-              {b.type === "quiz" && (
+              {/* Quiz: multi-question support */}
+              {b.type === 'quiz' && (
                 <div>
-                  <p className="font-semibold mb-2">
-                    {b.question !== ""
-                      ? b.question
-                      : "Pregunta sin texto"}
-                  </p>
-                  {(b.options || []).map((opt, i) => {
+                  {(b.questions || []).map((q, qi) => {
                     const assigned = assignedMap[b.id];
-                    
-                    // Solo deshabilitar si ya se respondió (attempts >= maxAttempts)
                     const completed = assigned && assigned.attempts >= assigned.maxAttempts;
-                    
-                    // Mostrar estilos de resultado si está completado
-                    const showResultStyle = completed;
-                    const isCorrect = assigned && assigned.score === 1;
-                    const isSelectedOption = assigned && assigned.answers && assigned.answers.selectedIndex === i;
-
+                    const selected = (answersMap[b.id] && answersMap[b.id][qi]) ?? null;
                     return (
-                      <button
-                        key={i}
-                        className={`block w-full text-left border p-2 rounded mb-2 transition-colors ${
-                          !completed ? "hover:bg-gray-100 cursor-pointer" : "cursor-not-allowed opacity-60"
-                        } ${
-                          showResultStyle && isSelectedOption
-                            ? isCorrect 
-                              ? "bg-green-200 border-green-500 font-semibold"
-                              : "bg-red-200 border-red-500 font-semibold"
-                            : showResultStyle && i === b.correct
-                            ? "bg-green-100 border-green-400"
-                            : ""
-                        }`}
-                        onClick={() => !completed && handleAnswer(b.id, i, b.correct)}
-                        disabled={completed}
-                      >
-                        {opt !== "" ? opt : `Opción ${i + 1}`}
-                      </button>
+                      <div key={q.id || qi} className="mb-4">
+                        <p className="font-semibold mb-2">{q.question || 'Pregunta sin texto'}</p>
+                        {(q.options || []).map((opt, i) => (
+                          <button
+                            key={i}
+                            className={`block w-full text-left border p-2 rounded mb-2 transition-colors ${!completed ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-not-allowed opacity-60'} ${selected === i ? 'bg-blue-100 border-blue-400' : ''}`}
+                            onClick={() => {
+                              if (!isSignedIn || !user) return setMessage('Debes iniciar sesión para responder');
+                              if (completed) return;
+                              setAnswersMap(prev => {
+                                const copy = { ...(prev || {}) };
+                                copy[b.id] = copy[b.id] || [];
+                                copy[b.id][qi] = i;
+                                return copy;
+                              });
+                            }}
+                            disabled={completed}
+                          >
+                            {opt !== '' ? opt : `Opción ${i+1}`}
+                          </button>
+                        ))}
+                      </div>
                     );
                   })}
+
+                  <div className="flex gap-3 items-center mt-2">
+                    <button
+                      className="bg-green-600 text-white px-4 py-2 rounded"
+                      onClick={async () => {
+                        if (!isSignedIn || !user) return setMessage('Debes iniciar sesión');
+                        const selectedArr = (answersMap[b.id] || []).slice(0, (b.questions || []).length);
+                        let correctCount = 0;
+                        (b.questions || []).forEach((q, qi) => {
+                          if (selectedArr[qi] !== undefined && selectedArr[qi] === q.correct) correctCount++;
+                        });
+                        const score = (b.questions && b.questions.length > 0) ? (correctCount / b.questions.length) : 0;
+                        try {
+                          const res = await submitQuizResult(id, user.id, b.id, score, { answers: selectedArr });
+                          if (res && res.success) {
+                            const myResults = await getQuizResults(id, user.id);
+                            const map = {};
+                            (myResults || []).forEach(r => { map[r.quizBlockId] = r; });
+                            setAssignedMap(map);
+                            setMessage('✅ Respuestas enviadas.');
+                            setTimeout(() => setMessage(''), 2000);
+                          } else {
+                            setMessage('Error al enviar respuestas');
+                          }
+                        } catch (err) {
+                          console.error('Error enviando quiz:', err);
+                          setMessage('Error enviando respuestas');
+                        }
+                      }}
+                    >Enviar respuestas</button>
+
+                    <button
+                      className="bg-gray-200 px-3 py-2 rounded"
+                      onClick={async () => {
+                        // Toggle student's grades view
+                        if (!isSignedIn || !user) return setMessage('Debes iniciar sesión');
+                        if (!showMyGrades) {
+                          const my = await getQuizResults(id, user.id).catch(() => []);
+                          setAllResults(my || []);
+                        } else {
+                          await fetchData();
+                        }
+                        setShowMyGrades(prev => !prev);
+                      }}
+                    >{showMyGrades ? 'Ocultar mis notas' : 'Ver mis notas'}</button>
+                  </div>
 
                   {/* Si soy profesor, mostrar controles de asignación y resultados por estudiante */}
                   {user?.publicMetadata?.role === "teacher" && (
