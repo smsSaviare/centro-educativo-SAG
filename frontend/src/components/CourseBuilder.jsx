@@ -11,13 +11,25 @@ const getYoutubeEmbedUrl = (url) => {
     let videoId = null;
     let listId = null;
 
-    if (hostname.includes("youtube.com")) {
-      videoId = u.searchParams.get("v");
-      listId = u.searchParams.get("list");
-    } else if (hostname.includes("youtu.be")) {
-      videoId = u.pathname.slice(1);
-      listId = u.searchParams.get("list");
-    }
+                        {/* (Removed per-block insert toolbar) */}
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+
+        {/* Toolbar al final: añadir contenido hacia abajo */}
+        <div className="flex flex-wrap gap-3 mt-4">
+          <button onClick={() => addBlock("text")} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">➕ Texto</button>
+          <button onClick={() => addBlock("image")} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">🖼️ Imagen</button>
+          <button onClick={() => addBlock("video")} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">🎥 Video</button>
+          <button onClick={() => addBlock("quiz")} className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700">❓ Quiz</button>
+        </div>
+
 
     const sanitize = (id) => (id ? id.match(/[a-zA-Z0-9_-]+/g)?.join("") : null);
     videoId = sanitize(videoId);

@@ -92,6 +92,13 @@ export default function Navbar() {
           Panel docente
         </div>
       )}
+      
+      {/* Panel para estudiantes */}
+      {role === 'student' && (
+        <div className={navLinkClass} onClick={() => goTo('/student-panel')}>
+          Panel estudiante
+        </div>
+      )}
     </>
   );
 

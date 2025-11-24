@@ -7,6 +7,7 @@ import MyCoursesStudent from "./components/MyCoursesStudent";
 import CourseView from "./components/CourseView";
 import CourseEditor from "./components/CourseEditor";
 import Contacto from "./components/Contacto";
+import StudentPanel from "./components/StudentPanel";
 import {
   SignedIn,
   SignedOut,
@@ -180,6 +181,20 @@ function App() {
             <>
               <SignedIn>
                 <Dashboard />
+              </SignedIn>
+              <SignedOut>
+                <RedirectToSignIn />
+              </SignedOut>
+            </>
+          }
+        />
+
+        <Route
+          path="/student-panel"
+          element={
+            <>
+              <SignedIn>
+                <StudentPanel />
               </SignedIn>
               <SignedOut>
                 <RedirectToSignIn />

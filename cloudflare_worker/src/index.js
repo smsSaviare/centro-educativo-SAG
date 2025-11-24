@@ -75,11 +75,24 @@ export default {
           const type = block.type || 'text';
           let contentObj = {};
           if (type === 'quiz') {
-            contentObj = {
-              question: block.question || '',
-              options: Array.isArray(block.options) ? block.options : [],
-              correct: block.correct ?? 0,
-            };
+            // Support both legacy single-question and new multi-question shapes
+            if (Array.isArray(block.questions)) {
+              // Normalize questions array to be stored under content.questions
+              const qs = block.questions.map((q, qi) => ({
+                id: q.id ?? `${i}-${qi}`,
+                question: q.question ?? q.text ?? '',
+                options: Array.isArray(q.options) ? q.options : [],
+                correct: typeof q.correct === 'number' ? q.correct : 0,
+              }));
+              contentObj = { questions: qs };
+            } else {
+              // Legacy single-question shape
+              contentObj = {
+                question: block.question || '',
+                options: Array.isArray(block.options) ? block.options : [],
+                correct: block.correct ?? 0,
+              };
+            }
           } else {
             contentObj = {
               text: block.content || '',
