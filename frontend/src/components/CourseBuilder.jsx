@@ -11,25 +11,13 @@ const getYoutubeEmbedUrl = (url) => {
     let videoId = null;
     let listId = null;
 
-                        {/* (Removed per-block insert toolbar) */}
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-
-        {/* Toolbar al final: añadir contenido hacia abajo */}
-        <div className="flex flex-wrap gap-3 mt-4">
-          <button onClick={() => addBlock("text")} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">➕ Texto</button>
-          <button onClick={() => addBlock("image")} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">🖼️ Imagen</button>
-          <button onClick={() => addBlock("video")} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">🎥 Video</button>
-          <button onClick={() => addBlock("quiz")} className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700">❓ Quiz</button>
-        </div>
-
+    if (hostname.includes("youtube.com")) {
+      videoId = u.searchParams.get("v");
+      listId = u.searchParams.get("list");
+    } else if (hostname.includes("youtu.be")) {
+      videoId = u.pathname.slice(1);
+      listId = u.searchParams.get("list");
+    }
 
     const sanitize = (id) => (id ? id.match(/[a-zA-Z0-9_-]+/g)?.join("") : null);
     videoId = sanitize(videoId);
@@ -189,13 +177,6 @@ export default function CourseBuilder({ courseId, clerkId }) {
                       {...provided.dragHandleProps}
                       className="border rounded p-4 relative bg-gray-50 hover:shadow transition"
                     >
-                        {/* Add-toolbar before block: allow inserting blocks at this position */}
-                        <div className="mb-3 flex gap-2">
-                          <button onClick={() => addBlockAt(index, 'text')} className="text-sm bg-green-100 px-2 py-1 rounded">+ Texto</button>
-                          <button onClick={() => addBlockAt(index, 'image')} className="text-sm bg-blue-100 px-2 py-1 rounded">+ Imagen</button>
-                          <button onClick={() => addBlockAt(index, 'video')} className="text-sm bg-red-100 px-2 py-1 rounded">+ Video</button>
-                          <button onClick={() => addBlockAt(index, 'quiz')} className="text-sm bg-purple-100 px-2 py-1 rounded">+ Quiz</button>
-                        </div>
                       <button
                         onClick={() => removeBlock(index)}
                         className="absolute top-2 right-2 text-sm bg-red-500 text-white px-2 rounded hover:bg-red-600"
@@ -330,6 +311,13 @@ export default function CourseBuilder({ courseId, clerkId }) {
           )}
         </Droppable>
       </DragDropContext>
+      {/* Toolbar al final: añadir contenido hacia abajo */}
+      <div className="flex flex-wrap gap-3 mt-4">
+        <button onClick={() => addBlock("text")} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">➕ Texto</button>
+        <button onClick={() => addBlock("image")} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">🖼️ Imagen</button>
+        <button onClick={() => addBlock("video")} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">🎥 Video</button>
+        <button onClick={() => addBlock("quiz")} className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700">❓ Quiz</button>
+      </div>
 
       {message && <p className="mt-3 text-center text-green-700 font-medium">{message}</p>}
     </div>
