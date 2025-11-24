@@ -8,6 +8,7 @@ import {
   getStudents,
   deleteCourse,
   getCourseById,
+  updateCourse,
 } from "../api";
 import CourseBuilder from "./CourseBuilder";
 
@@ -73,10 +74,11 @@ export default function CourseEditor() {
         resources: resourceUrl ? [{ type: "link", url: resourceUrl }] : [],
       };
 
-      await postCourse(
-        editingCourse ? { ...payload, id: editingCourse.id } : payload,
-        clerkId
-      );
+      if (editingCourse) {
+        await updateCourse(editingCourse.id, payload, clerkId);
+      } else {
+        await postCourse(payload, clerkId);
+      }
 
       setMessage(editingCourse ? "✅ Curso actualizado" : "✅ Curso creado");
       setEditingCourse(null);

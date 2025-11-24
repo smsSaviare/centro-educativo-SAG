@@ -87,8 +87,10 @@ export default {
             };
           }
 
-          const stmt = await env.SAG_DB.prepare('INSERT INTO CourseBlocks (courseId, type, content, position, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)')
-            .bind(courseId, type, JSON.stringify(contentObj), block.position ?? i, now, now);
+          // Note: the D1 `CourseBlocks` table may not have `createdAt`/`updatedAt` columns
+          // (they were not present in the migrated schema). Insert only the columns that exist.
+          const stmt = await env.SAG_DB.prepare('INSERT INTO CourseBlocks (courseId, type, content, position) VALUES (?, ?, ?, ?)')
+            .bind(courseId, type, JSON.stringify(contentObj), block.position ?? i);
           const r = await stmt.run();
           const id = r && (r.lastRowId || r.lastInsertRowid || r.insertId || r.id);
           const fetched = id ? await env.SAG_DB.prepare('SELECT * FROM CourseBlocks WHERE id = ?').bind(id).all() : null;
