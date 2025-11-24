@@ -1,6 +1,6 @@
 // frontend/src/components/Navbar.jsx
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   SignedIn,
   SignedOut,
@@ -18,6 +18,26 @@ export default function Navbar() {
   const { signOut } = useClerk();
   const { user } = useUser();
   const role = user?.publicMetadata?.role || "student";
+
+  const navRef = useRef(null);
+
+  // Ajustar la variable CSS --nav-height según la altura real del nav
+  useEffect(() => {
+    function updateNavHeight() {
+      const el = navRef.current;
+      if (!el) return;
+      const h = el.offsetHeight || 72;
+      try {
+        document.documentElement.style.setProperty('--nav-height', `${h}px`);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    updateNavHeight();
+    window.addEventListener('resize', updateNavHeight);
+    return () => window.removeEventListener('resize', updateNavHeight);
+  }, [menuOpen, scrolled]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -77,6 +97,7 @@ export default function Navbar() {
 
   return (
     <motion.nav
+      ref={navRef}
       initial={{ y: -80 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.8 }}

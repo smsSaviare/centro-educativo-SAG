@@ -1,5 +1,5 @@
 // frontend/src/components/CourseView.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { getCourseById, getCourseBlocks, getQuizResults, submitQuizResult, assignQuizBlock, getStudents } from "../api";
 import { useUser } from "@clerk/clerk-react";
@@ -50,58 +50,59 @@ export default function CourseView() {
   const [message, setMessage] = useState("");
   const { user, isSignedIn } = useUser();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const courseData = await getCourseById(id);
-        setCourse(courseData);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const courseData = await getCourseById(id);
+      setCourse(courseData);
 
-        const data = await getCourseBlocks(id);
-        console.log("🧩 Datos de bloques recibidos:", data.blocks);
-        setBlocks(
-          Array.isArray(data.blocks)
-            ? data.blocks.map((b) => ({
-                ...b,
-                question: b.question || "Pregunta sin texto",
-                options: Array.isArray(b.options)
-                  ? b.options
-                  : ["Opción 1", "Opción 2"],
-              }))
-            : []
-        );
-              // Cargar resultados/assignaciones si el usuario está logueado
-              if (isSignedIn && user) {
-                const myResults = await getQuizResults(id, user.id);
-                const map = {};
-                (myResults || []).forEach((r) => {
-                  map[r.quizBlockId] = r;
-                });
-                setAssignedMap(map);
+      const data = await getCourseBlocks(id);
+      console.log("🧩 Datos de bloques recibidos:", data?.blocks);
+      setBlocks(
+        Array.isArray(data?.blocks)
+          ? data.blocks.map((b) => ({
+              ...b,
+              question: b.question || "Pregunta sin texto",
+              options: Array.isArray(b.options) ? b.options : ["Opción 1", "Opción 2"],
+            }))
+          : []
+      );
 
-                // Si soy profesor, cargar todos los resultados y lista de estudiantes
-                const userRole = user.publicMetadata?.role;
-                if (userRole === "teacher") {
-                  const all = await getQuizResults(id);
-                  setAllResults(all || []);
-                  const studs = await getStudents(user.id);
-                  setStudents(studs || []);
-                  // inicializar selects controlados
-                  const selects = {};
-                  (all || []).forEach(r => {
-                    selects[r.quizBlockId] = selects[r.quizBlockId] || "";
-                  });
-                  setAssignSelects(selects);
-                }
-              }
-      } catch (err) {
-        console.error("❌ Error cargando curso:", err);
-        setBlocks([]);
-      } finally {
-        setLoading(false);
+      // Cargar resultados/assignaciones si el usuario está logueado
+      if (isSignedIn && user) {
+        const myResults = await getQuizResults(id, user.id).catch(() => []);
+        const map = {};
+        (myResults || []).forEach((r) => {
+          map[r.quizBlockId] = r;
+        });
+        setAssignedMap(map);
+
+        // Si soy profesor, cargar todos los resultados y lista de estudiantes
+        const userRole = user.publicMetadata?.role;
+        if (userRole === "teacher") {
+          const all = await getQuizResults(id).catch(() => []);
+          setAllResults(all || []);
+          const studs = await getStudents(user.id).catch(() => []);
+          setStudents(studs || []);
+          // inicializar selects controlados
+          const selects = {};
+          (all || []).forEach((r) => {
+            selects[r.quizBlockId] = selects[r.quizBlockId] || "";
+          });
+          setAssignSelects(selects);
+        }
       }
-    };
+    } catch (err) {
+      console.error("❌ Error cargando curso:", err);
+      setBlocks([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, isSignedIn, user]);
+
+  useEffect(() => {
     fetchData();
-  }, [id]);
+  }, [fetchData]);
 
   const handleAnswer = async (blockId, selectedIndex, correctIndex) => {
     const isCorrect = selectedIndex === correctIndex;
@@ -189,9 +190,18 @@ export default function CourseView() {
       </p>
 
       {(blocks || []).length === 0 ? (
-        <p className="text-gray-500 text-center">
-          No hay contenido disponible.
-        </p>
+        <div className="text-center">
+          <p className="text-gray-500">No hay contenido disponible.</p>
+          <p className="text-sm text-gray-400 mt-2">Si esto no es correcto, puede ser un problema en el servidor o en la API.</p>
+          <div className="mt-3">
+            <button
+              onClick={() => fetchData()}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-500"
+            >
+              Reintentar cargar contenido
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="space-y-6">
           {(blocks || []).map((b) => (
