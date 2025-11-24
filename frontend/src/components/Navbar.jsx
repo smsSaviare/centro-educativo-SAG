@@ -93,12 +93,14 @@ export default function Navbar() {
         </div>
       )}
       
-      {/* Panel para estudiantes */}
-      {role === 'student' && (
-        <div className={navLinkClass} onClick={() => goTo('/student-panel')}>
-          Panel estudiante
-        </div>
-      )}
+      {/* Panel para estudiantes: sólo mostrar cuando el usuario está autenticado y es student */}
+      <SignedIn>
+        {role === 'student' && (
+          <div className={navLinkClass} onClick={() => goTo('/student-panel')}>
+            Panel estudiante
+          </div>
+        )}
+      </SignedIn>
     </>
   );
 
