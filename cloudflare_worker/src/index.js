@@ -219,6 +219,27 @@ export default {
         return jsonResponse(fetched.results[0] || null, 201);
       }
 
+      // Update an existing course
+      if (request.method === 'PUT' && path.startsWith('/courses/')) {
+        const id = parseInt(path.split('/')[2], 10);
+        const b = await request.json();
+        // Only update allowed fields
+        const now = new Date().toISOString();
+        await env.SAG_DB.prepare(
+          'UPDATE Courses SET title = ?, description = ?, image = ?, resources = ?, updatedAt = ? WHERE id = ?'
+        ).bind(
+          b.title || '',
+          b.description || '',
+          b.image || null,
+          JSON.stringify(b.resources ?? []),
+          now,
+          id
+        ).run();
+
+        const fetched = await env.SAG_DB.prepare('SELECT * FROM Courses WHERE id = ?').bind(id).all();
+        return jsonResponse(fetched.results[0] || null);
+      }
+
       return jsonResponse({ error: 'not_found' }, 404)
     } catch (err) {
       // Log full error to worker logs and return stack for debugging

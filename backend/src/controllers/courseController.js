@@ -166,6 +166,21 @@ exports.updateCourse = async (req, res) => {
     const { courseId } = req.params;
     const { title, description, image, resources } = req.body;
     const clerkId = req.headers["x-clerk-id"];
+    // If in WORKER mode, delegate update to the Worker (D1)
+    if (process.env.WORKER_URL) {
+      const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(clerkId)}`);
+      const user = Array.isArray(users) && users.length > 0 ? users[0] : null;
+      if (!user || user.role !== 'teacher') return res.status(403).json({ error: 'No autorizado' });
+
+      try {
+        const payload = { title, description, image: image || null, resources: resources || [] };
+        const updated = await workerClient.put(`/courses/${encodeURIComponent(courseId)}`, payload);
+        return res.json(updated);
+      } catch (err) {
+        console.error('❌ Error actualizando curso (Worker):', err && err.message ? err.message : err);
+        return res.status(500).json({ error: 'Error actualizando curso', detail: (err && err.message) || String(err) });
+      }
+    }
 
     const course = await Course.findByPk(courseId);
     if (!course) return res.status(404).json({ error: "Curso no encontrado" });
