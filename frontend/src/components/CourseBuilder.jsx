@@ -46,21 +46,27 @@ export default function CourseBuilder({ courseId, clerkId }) {
       try {
         const data = await getCourseBlocks(courseId, clerkId);
         const normalized = Array.isArray(data.blocks)
-          ? data.blocks.map((b) => ({
-              id: b.id?.toString() || Date.now().toString(),
-              type: b.type || "text",
-              question: (b.question ?? b.content?.question ?? "") || "",
-              options:
-                Array.isArray(b.options) || Array.isArray(b.content?.options)
-                  ? b.options || b.content?.options
-                  : ["", ""],
-              correct: typeof b.correct === "number" ? b.correct : (b.content?.correct ?? 0),
-              url: b.url ?? b.content?.url ?? "",
-              content:
-                b.content ??
-                (typeof b.content === "object" ? b.content.content ?? "" : b.content) ??
-                "",
-            }))
+          ? data.blocks.map((b) => {
+              const base = { id: b.id?.toString() || Date.now().toString(), type: b.type || 'text' };
+              if (b.type === 'quiz') {
+                // Prefer explicit questions[] if present (new format)
+                if (Array.isArray(b.questions) && b.questions.length > 0) {
+                  return { ...base, questions: b.questions.map((q, qi) => ({ id: q.id ?? `${b.id}-${qi}`, question: q.question || q.text || '', options: Array.isArray(q.options) ? q.options : ['', ''], correct: typeof q.correct === 'number' ? q.correct : 0 })) };
+                }
+
+                // Try to read from content (legacy or normalized by backend)
+                const content = b.content || {};
+                if (Array.isArray(content.questions) && content.questions.length > 0) {
+                  return { ...base, questions: content.questions.map((q, qi) => ({ id: q.id ?? `${b.id}-${qi}`, question: q.question || q.text || '', options: Array.isArray(q.options) ? q.options : ['', ''], correct: typeof q.correct === 'number' ? q.correct : 0 })) };
+                }
+
+                // Legacy single-question shape
+                return { ...base, questions: [ { id: `${b.id}-0`, question: (b.question || content.question || content.text || '') || '', options: Array.isArray(b.options) ? b.options : (Array.isArray(content.options) ? content.options : ['', '']), correct: typeof b.correct === 'number' ? b.correct : (content.correct ?? 0) } ] };
+              }
+
+              // Non-quiz blocks
+              return { ...base, content: (b.content && (typeof b.content === 'object' ? b.content.text ?? '' : b.content)) || '', url: b.url || (b.content && b.content.url) || '' };
+            })
           : [];
         setBlocks(normalized);
       } catch (err) {
@@ -274,6 +280,19 @@ export default function CourseBuilder({ courseId, clerkId }) {
                                       updateBlock(index, "questions", newQs);
                                     }}
                                   />
+                                  <button
+                                    className="text-sm text-red-600 px-2"
+                                    onClick={() => {
+                                      const newQs = [...(block.questions || [])];
+                                      const opts = [...(newQs[qi].options || [])];
+                                      if (opts.length <= 1) return; // keep at least one option
+                                      opts.splice(i, 1);
+                                      newQs[qi] = { ...newQs[qi], options: opts };
+                                      // adjust correct index if needed
+                                      if (newQs[qi].correct >= opts.length) newQs[qi].correct = Math.max(0, opts.length - 1);
+                                      updateBlock(index, "questions", newQs);
+                                    }}
+                                  >Eliminar</button>
                                 </div>
                               ))}
 
@@ -281,12 +300,26 @@ export default function CourseBuilder({ courseId, clerkId }) {
                                 <button
                                   className="text-sm text-blue-600 underline"
                                   onClick={() => {
+                                    const newQs = [...(block.questions || [])];
+                                    const qcopy = { ...(newQs[qi] || { question: '', options: ['', ''], correct: 0 }) };
+                                    qcopy.options = Array.isArray(qcopy.options) ? [...qcopy.options, ''] : ['', ''];
+                                    newQs[qi] = qcopy;
+                                    updateBlock(index, "questions", newQs);
+                                  }}
+                                >
+                                  + Añadir opción
+                                </button>
+
+                                <button
+                                  className="text-sm text-green-600 underline"
+                                  onClick={() => {
                                     const newQs = [...(block.questions || []), { id: `${block.id}-${Date.now()}`, question: "", options: ["", ""], correct: 0 }];
                                     updateBlock(index, "questions", newQs);
                                   }}
                                 >
                                   + Añadir otra pregunta al quiz
                                 </button>
+
                                 <button
                                   className="text-sm text-red-600 underline"
                                   onClick={() => {

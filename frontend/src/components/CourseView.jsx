@@ -43,6 +43,7 @@ export default function CourseView() {
   const [blocks, setBlocks] = useState([]);
   const [answersMap, setAnswersMap] = useState({}); // map blockId -> array of selected indices per question
   const [showMyGrades, setShowMyGrades] = useState(false);
+  const [answerResults, setAnswerResults] = useState({}); // map blockId -> { selectedArr, correctMask: [bool] }
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState({});
   const [assignedMap, setAssignedMap] = useState({});
@@ -252,25 +253,35 @@ export default function CourseView() {
                     return (
                       <div key={q.id || qi} className="mb-4">
                         <p className="font-semibold mb-2">{q.question || 'Pregunta sin texto'}</p>
-                        {(q.options || []).map((opt, i) => (
-                          <button
-                            key={i}
-                            className={`block w-full text-left border p-2 rounded mb-2 transition-colors ${!completed ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-not-allowed opacity-60'} ${selected === i ? 'bg-blue-100 border-blue-400' : ''}`}
-                            onClick={() => {
-                              if (!isSignedIn || !user) return setMessage('Debes iniciar sesión para responder');
-                              if (completed) return;
-                              setAnswersMap(prev => {
-                                const copy = { ...(prev || {}) };
-                                copy[b.id] = copy[b.id] || [];
-                                copy[b.id][qi] = i;
-                                return copy;
-                              });
-                            }}
-                            disabled={completed}
-                          >
-                            {opt !== '' ? opt : `Opción ${i+1}`}
-                          </button>
-                        ))}
+                        {(q.options || []).map((opt, i) => {
+                          const resultForBlock = answerResults[b.id];
+                          const reveal = resultForBlock && Array.isArray(resultForBlock.correctMask);
+                          const selectedIndex = (answersMap[b.id] && answersMap[b.id][qi]) ?? null;
+                          const isSelected = selectedIndex === i;
+                          const isCorrect = q.correct === i;
+                          const selectedWasCorrect = reveal && resultForBlock.selectedArr[qi] === i && resultForBlock.correctMask[qi];
+                          const selectedWasWrong = reveal && resultForBlock.selectedArr[qi] === i && !resultForBlock.correctMask[qi];
+
+                          return (
+                            <button
+                              key={i}
+                              className={`block w-full text-left border p-2 rounded mb-2 transition-colors ${!completed ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-not-allowed opacity-60'} ${isSelected ? 'bg-blue-100 border-blue-400' : ''} ${selectedWasCorrect ? 'bg-green-200 border-green-500 font-semibold' : ''} ${selectedWasWrong ? 'bg-red-200 border-red-500 font-semibold' : ''} ${(!selectedWasCorrect && reveal && isCorrect) ? 'bg-green-100 border-green-400' : ''}`}
+                              onClick={() => {
+                                if (!isSignedIn || !user) return setMessage('Debes iniciar sesión para responder');
+                                if (completed) return;
+                                setAnswersMap(prev => {
+                                  const copy = { ...(prev || {}) };
+                                  copy[b.id] = copy[b.id] || [];
+                                  copy[b.id][qi] = i;
+                                  return copy;
+                                });
+                              }}
+                              disabled={completed || (reveal === true)}
+                            >
+                              {opt !== '' ? opt : `Opción ${i+1}`}
+                            </button>
+                          );
+                        })}
                       </div>
                     );
                   })}
@@ -282,12 +293,19 @@ export default function CourseView() {
                         if (!isSignedIn || !user) return setMessage('Debes iniciar sesión');
                         const selectedArr = (answersMap[b.id] || []).slice(0, (b.questions || []).length);
                         let correctCount = 0;
+                        const correctMask = [];
                         (b.questions || []).forEach((q, qi) => {
-                          if (selectedArr[qi] !== undefined && selectedArr[qi] === q.correct) correctCount++;
+                          const sel = selectedArr[qi];
+                          const ok = sel !== undefined && sel === q.correct;
+                          if (ok) correctCount++;
+                          correctMask[qi] = ok;
                         });
                         const score = (b.questions && b.questions.length > 0) ? (correctCount / b.questions.length) : 0;
                         try {
                           const res = await submitQuizResult(id, user.id, b.id, score, { answers: selectedArr });
+                          // reveal results locally immediately
+                          setAnswerResults(prev => ({ ...prev, [b.id]: { selectedArr, correctMask } }));
+
                           if (res && res.success) {
                             const myResults = await getQuizResults(id, user.id);
                             const map = {};

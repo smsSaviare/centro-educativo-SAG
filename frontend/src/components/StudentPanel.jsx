@@ -70,11 +70,11 @@ export default function StudentPanel() {
                     </thead>
                     <tbody>
                       {(resultsByCourse[c.id] || []).map((r) => (
-                        <tr key={`${c.id}-${r.id}`}>
-                          <td>{`Quiz #${r.quizBlockId}`}</td>
-                          <td>{r.score === null || r.score === undefined ? '—' : Math.round(r.score * 100) + '%'}</td>
-                          <td>{r.completedAt ? '✅' : '⏳'}</td>
-                        </tr>
+                          <tr key={`${c.id}-${r.id}`}>
+                            <td>{`Quiz (${c.title})`}</td>
+                            <td>{r.score === null || r.score === undefined ? '—' : Math.round(r.score * 100) + '%'}</td>
+                            <td>{r.completedAt ? '✅' : '⏳'}</td>
+                          </tr>
                       ))}
                     </tbody>
                   </table>

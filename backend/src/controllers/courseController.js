@@ -602,11 +602,16 @@ exports.saveCourseBlocks = async (req, res) => {
       let contentData = {};
 
       if (block.type === "quiz") {
-        contentData = {
-          question: block.question || "",
-          options: block.options || [],
-          correct: block.correct ?? 0,
-        };
+        // Support new multi-question format if present
+        if (Array.isArray(block.questions)) {
+          contentData = { questions: block.questions };
+        } else {
+          contentData = {
+            question: block.question || "",
+            options: block.options || [],
+            correct: block.correct ?? 0,
+          };
+        }
       } else {
         contentData = {
           text: block.content || "",
