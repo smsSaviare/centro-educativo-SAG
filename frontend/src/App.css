@@ -5,6 +5,16 @@
   text-align: center;
 }
 
+/* Altura de la barra de navegación fija. Ajustar si cambias el nav. */
+:root {
+  --nav-height: 72px;
+}
+
+/* Evita que el contenido quede debajo de la nav fija */
+body {
+  padding-top: var(--nav-height);
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

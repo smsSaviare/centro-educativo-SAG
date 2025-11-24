@@ -103,6 +103,17 @@ function App() {
     };
     const onMessage = (ev) => {
       try {
+        // Ignorar mensajes provenientes de extensiones u orígenes desconocidos.
+        // Algunos mensajes de extensiones pueden provocar el warning: "A listener indicated an asynchronous response..."
+        const origin = ev?.origin || "";
+        if (
+          origin.startsWith("chrome-extension://") ||
+          origin.startsWith("moz-extension://") ||
+          origin === "null" ||
+          origin === ""
+        ) {
+          return; // noop para evitar interferencias con extensiones
+        }
         console.warn("DIAGNOSTIC window.message", ev.origin, ev.data);
       } catch (err) {
         console.warn("DIAGNOSTIC window.message (error reading)", err);
