@@ -31,10 +31,10 @@ export default function Home() {
                    text-center left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-green-600 drop-shadow">
-          ☘️ Centro Educativo SAG
+          🍀Centro Educativo SAG
         </h1>
         <p className="mt-4 text-gray-700 text-base sm:text-lg md:text-xl leading-relaxed">
-          Formación práctica en sistemas de gestión de la seguridad, estándares operacionales e inducciones para personal nuevo ✈️ ☘️
+          Formación práctica en sistemas de gestión de la seguridad, estándares operacionales e inducciones para personal nuevo ✈️ 🍀
         </p>
 
         {/* 🔹 Botones Clerk */}
