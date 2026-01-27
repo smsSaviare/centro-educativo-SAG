@@ -84,10 +84,32 @@ export default function CourseView() {
       if (isSignedIn && user) {
         const myResults = await getQuizResults(id, user.id).catch(() => []);
         const map = {};
+        const answerResults = {};
         (myResults || []).forEach((r) => {
           map[r.quizBlockId] = r;
+          // Reconstruct answerResults from saved quiz results for proper display
+          if (r.answers) {
+            let answersArray = null;
+            if (typeof r.answers === 'object' && r.answers.answers && Array.isArray(r.answers.answers)) {
+              answersArray = r.answers.answers;
+            } else if (Array.isArray(r.answers)) {
+              answersArray = r.answers;
+            }
+            
+            if (answersArray && Array.isArray(answersArray)) {
+              // Find the corresponding quiz block to get correct answers
+              const quizBlock = normalized.find(b => b.id === r.quizBlockId);
+              if (quizBlock && Array.isArray(quizBlock.questions)) {
+                const correctMask = quizBlock.questions.map((q, qi) => {
+                  return answersArray[qi] === q.correct;
+                });
+                answerResults[r.quizBlockId] = { selectedArr: answersArray, correctMask };
+              }
+            }
+          }
         });
         setAssignedMap(map);
+        setAnswerResults(answerResults);
 
         // Si soy profesor, cargar todos los resultados y lista de estudiantes
         const userRole = user.publicMetadata?.role;

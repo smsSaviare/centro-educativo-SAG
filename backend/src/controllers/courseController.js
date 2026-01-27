@@ -259,34 +259,12 @@ exports.getCourseBlocks = async (req, res) => {
           const parsed = JSON.parse(s);
           if (parsed && typeof parsed === 'object') return parsed;
         } catch (e) {
-          // continue to heuristics
+          console.warn("⚠️ Failed to parse content JSON:", e.message);
+          // Log the problematic content for debugging
+          console.warn("📋 Problematic content string:", s.substring(0, 200));
+          // Return empty object instead of attempting heuristic recovery
+          return {};
         }
-
-        // Heuristic: look for a `text` field inside the malformed string
-        // Examples observed: "{'text'":'"Uso de EPPs'"  or similar mixes of quotes
-        const m = s.match(/text\s*['\"]*\s*[:=]\s*['\"`]+([^'"`\n\r]+)/i);
-        if (m && m[1]) {
-          return { text: m[1].trim() };
-        }
-
-        // Another heuristic: find the longest quoted substring (single or double quotes)
-        const quoted = [];
-        const qr = s.match(/['"]([^'"]{3,})['"]/g);
-        if (qr && qr.length > 0) {
-          for (const q of qr) {
-            const inner = q.slice(1, -1).trim();
-            if (inner.length > 2) quoted.push(inner);
-          }
-          if (quoted.length > 0) {
-            // prefer the longest quoted segment
-            quoted.sort((a, b) => b.length - a.length);
-            return { text: quoted[0] };
-          }
-        }
-
-        // Fallback: remove stray braces and quotes and return what's left
-        const cleaned = s.replace(/[{}\[\]`]/g, '').replace(/\s+/g, ' ').replace(/\"/g, '"').trim();
-        return { text: cleaned };
       }
 
       // default
@@ -362,13 +340,31 @@ exports.saveQuizResult = async (req, res) => {
     const maxAttempts = existing.maxAttempts ?? 1;
     if (attempts >= maxAttempts) return res.status(403).json({ error: 'No quedan intentos para este quiz' });
 
+    // Normalize answers to consistent format: { answers: [...] }
+    let normalizedAnswers = null;
+    if (answers) {
+      if (answers.answers && Array.isArray(answers.answers)) {
+        // Already in correct format
+        normalizedAnswers = answers;
+      } else if (typeof answers.selectedIndex === 'number') {
+        // Convert single selectedIndex to array format
+        normalizedAnswers = { answers: [answers.selectedIndex] };
+      } else if (Array.isArray(answers)) {
+        // If answers is already an array, wrap it
+        normalizedAnswers = { answers };
+      } else if (typeof answers === 'object') {
+        // Try to extract answers property or convert to array format
+        normalizedAnswers = answers;
+      }
+    }
+
     // Crear un nuevo registro de resultado vía Worker (append)
     const payload = {
       courseId: parseInt(courseId),
       clerkId,
       quizBlockId: parseInt(quizBlockId),
       score: score ?? null,
-      answers: answers ?? null,
+      answers: normalizedAnswers ?? null,
       assignedBy: existing.assignedBy ?? null,
       completedAt: new Date().toISOString(),
       attempts: attempts + 1,
@@ -452,7 +448,19 @@ exports.getQuizResults = async (req, res) => {
         const users = await workerClient.get(`/users?clerkId=${encodeURIComponent(r.clerkId)}`);
         const u = Array.isArray(users) && users.length > 0 ? users[0] : null;
         if (!u) continue; // skip results for deleted users
-        const row = Object.assign({}, r, { student: { firstName: u.firstName, lastName: u.lastName, email: u.email } });
+        // Ensure answers is properly parsed
+        let parsedAnswers = r.answers;
+        if (typeof parsedAnswers === 'string') {
+          try {
+            parsedAnswers = JSON.parse(parsedAnswers);
+          } catch (e) {
+            console.warn('Failed to parse answers for result:', r.id, e);
+          }
+        }
+        const row = Object.assign({}, r, { 
+          answers: parsedAnswers,
+          student: { firstName: u.firstName, lastName: u.lastName, email: u.email } 
+        });
         enriched.push(row);
       }
 

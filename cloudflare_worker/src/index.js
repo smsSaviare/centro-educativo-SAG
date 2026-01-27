@@ -139,15 +139,20 @@ export default {
       if (request.method === 'GET' && path === '/quiz-results') {
         const clerkId = url.searchParams.get('clerkId')
         const courseId = url.searchParams.get('courseId')
+        let results = []
         if (clerkId) {
           const res = await env.SAG_DB.prepare('SELECT * FROM QuizResults WHERE clerkId = ? ORDER BY quizBlockId ASC').bind(clerkId).all()
-          return jsonResponse(res.results)
-        }
-        if (courseId) {
+          results = res.results || []
+        } else if (courseId) {
           const res = await env.SAG_DB.prepare('SELECT * FROM QuizResults WHERE courseId = ? ORDER BY quizBlockId ASC').bind(courseId).all()
-          return jsonResponse(res.results)
+          results = res.results || []
         }
-        return jsonResponse([])
+        // Parse JSON strings back to objects for proper data integrity
+        const parsed = results.map(r => ({
+          ...r,
+          answers: r.answers ? (() => { try { return JSON.parse(r.answers) } catch(e) { return r.answers } })() : null
+        }))
+        return jsonResponse(parsed)
       }
 
       if (request.method === 'POST' && path === '/quiz-results') {
